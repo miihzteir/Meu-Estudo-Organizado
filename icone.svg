@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8f6b8c"/>
+      <stop offset="100%" stop-color="#513a54"/>
+    </linearGradient>
+    <linearGradient id="pageShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f3ecf2"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- soft inner glow -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#ffffff" opacity="0.04"/>
+
+  <!-- stars -->
+  <g fill="#e8d9f0" opacity="0.9">
+    <path d="M108 96 l7 16 16 7 -16 7 -7 16 -7 -16 -16 -7 16 -7 z"/>
+    <path d="M404 132 l5 12 12 5 -12 5 -5 12 -5 -12 -12 -5 12 -5 z"/>
+    <path d="M392 372 l6 13 13 6 -13 6 -6 13 -6 -13 -13 -6 13 -6 z"/>
+  </g>
+
+  <!-- open book -->
+  <g>
+    <path d="M256 172 C 226 150 176 140 132 146 C 126 147 122 152 122 158 L122 336 C122 342 127 347 133 346 C 176 341 224 351 256 374 Z" fill="url(#pageShade)"/>
+    <path d="M256 172 C 286 150 336 140 380 146 C 386 147 390 152 390 158 L390 336 C390 342 385 347 379 346 C 336 341 288 351 256 374 Z" fill="#ffffff"/>
+    <path d="M256 172 L256 374" stroke="#c9b3cc" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- page lines left -->
+    <g stroke="#c9b3cc" stroke-width="5" stroke-linecap="round" opacity="0.85">
+      <line x1="146" y1="196" x2="228" y2="184"/>
+      <line x1="146" y1="222" x2="228" y2="212"/>
+      <line x1="146" y1="248" x2="228" y2="240"/>
+      <line x1="146" y1="274" x2="220" y2="268"/>
+    </g>
+    <!-- page lines right -->
+    <g stroke="#e3d3e6" stroke-width="5" stroke-linecap="round" opacity="0.85">
+      <line x1="284" y1="184" x2="366" y2="196"/>
+      <line x1="284" y1="212" x2="366" y2="222"/>
+      <line x1="284" y1="240" x2="366" y2="248"/>
+      <line x1="292" y1="268" x2="366" y2="274"/>
+    </g>
+
+    <!-- bookmark -->
+    <path d="M292 140 L332 140 L332 224 L312 206 L292 224 Z" fill="#8f6b8c"/>
+    <path d="M292 140 L332 140 L332 224 L312 206 L292 224 Z" fill="none" stroke="#513a54" stroke-width="2" opacity="0.3"/>
+  </g>
+</svg>

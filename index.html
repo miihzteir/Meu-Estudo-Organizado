@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meu Estudo Organizado</title>
+<meta name="description" content="Organize semestres, matérias, agenda, resumos, flashcards e PDFs em um só lugar.">
+<meta name="theme-color" content="#6e4f6f">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icone.svg">
+<link rel="apple-touch-icon" href="./icone-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<div id="app-shell">
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <img src="./icone-192.png" alt="Logo Meu Estudo Organizado">
+      <div class="brand-text">
+        <span class="brand-title">Meu Estudo<br>Organizado</span>
+      </div>
+      <button class="menu-btn sidebar-close" id="sidebar-close-btn" aria-label="Fechar menu" style="margin-left:auto;">
+        <i data-lucide="x" class="ic"></i>
+      </button>
+    </div>
+
+    <div class="search-box" id="sidebar-search-box">
+      <i data-lucide="search" class="ic"></i>
+      <input type="search" id="global-search-input" placeholder="Pesquisar" aria-label="Pesquisar">
+    </div>
+
+    <ul class="nav-list" id="nav-list">
+      <li><button class="nav-item" data-route="visao-geral"><i data-lucide="layout-dashboard" class="ic"></i> Visão geral</button></li>
+      <li><button class="nav-item" data-route="agenda"><i data-lucide="calendar-days" class="ic"></i> Agenda</button></li>
+      <li><button class="nav-item" data-route="pomodoro"><i data-lucide="timer" class="ic"></i> Pomodoro</button></li>
+      <li><button class="nav-item" data-route="progresso"><i data-lucide="trending-up" class="ic"></i> Meu progresso</button></li>
+      <li><button class="nav-item" data-route="links"><i data-lucide="link-2" class="ic"></i> Links</button></li>
+      <li><button class="nav-item" data-route="configuracoes"><i data-lucide="settings" class="ic"></i> Configurações</button></li>
+    </ul>
+
+    <button class="sidebar-install" id="install-btn" hidden>
+      <i data-lucide="download" class="ic"></i> Instalar aplicativo
+    </button>
+
+    <div class="sidebar-footer">
+      Minha graduação
+      <span class="grad-nome" id="grad-nome-footer">Não definida</span>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <button class="menu-btn" id="menu-open-btn" aria-label="Abrir menu">
+        <i data-lucide="menu" class="ic"></i>
+      </button>
+      <img src="./icone-192.png" alt="" style="width:28px;height:28px;border-radius:8px;">
+      <span class="brand-title">Meu Estudo Organizado</span>
+    </div>
+
+    <main class="view-container" id="view-root" role="main">
+      <!-- conteúdo renderizado via JavaScript -->
+    </main>
+  </div>
+
+</div>
+
+<div id="modal-root"></div>
+<div id="search-root"></div>
+
+<!-- Firebase (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+
+<script src="./firebase-config.js"></script>
+<script src="./js/utils.js"></script>
+<script src="./js/icons-data.js"></script>
+<script src="./js/db.js"></script>
+<script src="./js/sync.js"></script>
+<script src="./js/calendar.js"></script>
+<script src="./js/pomodoro.js"></script>
+<script src="./js/flashcards.js"></script>
+<script src="./js/forms.js"></script>
+<script src="./js/views.js"></script>
+<script src="./js/app.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(function (e) {
+        console.warn('Service worker não registrado:', e);
+      });
+    });
+  }
+</script>
+</body>
+</html>
