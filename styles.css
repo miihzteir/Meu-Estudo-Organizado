@@ -73,7 +73,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .sidebar {
   width: var(--sidebar-largura);
   flex-shrink: 0;
-  background: linear-gradient(175deg, #ffffff 0%, var(--fundo-alt) 100%);
+  background-color: var(--fundo-alt);
+  background-image: linear-gradient(175deg, #ffffff 0%, var(--fundo-alt) 100%), url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22440%22%20viewBox%3D%220%200%20160%20440%22%3E%3Cpath%20d%3D%22M22%2C428%20C46%2C382%208%2C344%2032%2C300%20C56%2C256%2014%2C214%2036%2C172%20C58%2C130%2018%2C92%2034%2C54%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%223.2%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.95%22%2F%3E%3Cpath%20d%3D%22M22%2C428%20C46%2C382%208%2C344%2032%2C300%20C56%2C256%2014%2C214%2036%2C172%20C58%2C130%2018%2C92%2034%2C54%22%20fill%3D%22none%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.55%22%2F%3E%3Cellipse%20cx%3D%2216%22%20cy%3D%22356%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%28-28%2016%20356%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2248%22%20cy%3D%22318%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%2832%2048%20318%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2212%22%20cy%3D%22278%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%28-26%2012%20278%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2250%22%20cy%3D%22238%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%2834%2050%20238%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2216%22%20cy%3D%22196%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%28-28%2016%20196%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2248%22%20cy%3D%22158%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%2830%2048%20158%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2220%22%20cy%3D%22118%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%28-24%2020%20118%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2246%22%20cy%3D%2280%22%20rx%3D%2213%22%20ry%3D%226.5%22%20transform%3D%22rotate%2832%2046%2080%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2244%22%20r%3D%224%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat, no-repeat;
+  background-position: left top, left bottom -8px;
+  background-size: auto, 128px auto;
   border-right: 1px solid var(--borda);
   display: flex;
   flex-direction: column;
@@ -116,14 +120,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .nav-item.active { background: linear-gradient(90deg, var(--cor-principal) 0%, var(--cor-principal-clara) 100%); color: #fff; box-shadow: var(--sombra); }
 .nav-item.active .ic { color: #fff; }
 
-.sidebar-install {
-  margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 11px 14px; border-radius: 12px; border: 1.5px dashed var(--cor-principal-clara);
-  color: var(--cor-principal); background: #fff; font-weight: 700; cursor: pointer; font-size: 13.5px;
-  min-height: 44px;
-}
-.sidebar-install:hover { background: var(--fundo-alt); }
-
 .sidebar-footer {
   margin-top: 14px; padding: 12px 14px; border-top: 1px solid var(--borda);
   font-size: 12.5px; color: var(--texto-fraco);
@@ -150,7 +146,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(58,44,59,.35); z-index: 39; }
 
-.view-container { padding: 30px 34px 60px; max-width: 1180px; width: 100%; margin: 0 auto; }
+.view-container {
+  padding: 30px 34px 60px; max-width: 1180px; width: 100%; margin: 0 auto;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22180%22%20height%3D%22180%22%20viewBox%3D%220%200%20180%20180%22%3E%3Cpath%20d%3D%22M6%2C170%20C34%2C140%2012%2C116%2038%2C90%20C64%2C64%2040%2C42%2060%2C14%22%20fill%3D%22none%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.9%22%2F%3E%3Cpath%20d%3D%22M6%2C170%20C34%2C140%2012%2C116%2038%2C90%20C64%2C64%2040%2C42%2060%2C14%22%20fill%3D%22none%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%220.9%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.5%22%2F%3E%3Cellipse%20cx%3D%2216%22%20cy%3D%22150%22%20rx%3D%2211%22%20ry%3D%225.5%22%20transform%3D%22rotate%28-30%2016%20150%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2242%22%20cy%3D%22124%22%20rx%3D%2211%22%20ry%3D%225.5%22%20transform%3D%22rotate%2830%2042%20124%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2220%22%20cy%3D%22100%22%20rx%3D%2210%22%20ry%3D%225%22%20transform%3D%22rotate%28-28%2020%20100%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Cellipse%20cx%3D%2246%22%20cy%3D%2272%22%20rx%3D%2210%22%20ry%3D%225%22%20transform%3D%22rotate%2832%2046%2072%29%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3Ccircle%20cx%3D%2252%22%20cy%3D%2226%22%20r%3D%223.6%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23e3cfe0%22%20stroke-width%3D%221.1%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: top right -18px;
+  background-size: 140px auto;
+}
 
 .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
 .page-head h1 { font-size: 27px; }
@@ -451,18 +453,18 @@ select.filter-chip { padding-right: 10px; }
 
 /* ---------------- toast ---------------- */
 .toast {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(8px);
   background: var(--cor-principal-escura); color: #fff; padding: 12px 20px; border-radius: 12px;
   font-size: 13.5px; font-weight: 600; box-shadow: var(--sombra-forte); z-index: 400; opacity: 0; pointer-events: none;
-  transition: all .25s ease; max-width: 90vw; text-align: center;
+  transition: opacity .15s ease, transform .15s ease; max-width: 90vw; text-align: center;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 .toast-success { background: var(--sucesso); }
 .toast-error { background: var(--erro); }
 
 /* ---------------- utilitários de animação ---------------- */
-.fade-in { animation: fadeIn .25s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .12s ease-out; }
+@keyframes fadeIn { from { opacity: .55; } to { opacity: 1; } }
 
 .progress-bar-mini { height: 6px; border-radius: 6px; background: var(--fundo-alt); overflow: hidden; }
 .progress-bar-mini .fill { height: 100%; background: var(--cor-principal); border-radius: 6px; }
