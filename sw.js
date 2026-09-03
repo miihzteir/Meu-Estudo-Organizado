@@ -1,0 +1,6 @@
+const CACHE="meu-estudo-original-github-v1";
+const BASE="/Meu-Estudo-Organizado";
+const SHELL=[`${BASE}/`,`${BASE}/agenda/`,`${BASE}/pomodoro/`,`${BASE}/progresso/`,`${BASE}/links/`,`${BASE}/manifest.webmanifest`,`${BASE}/app-icon-192.png`,`${BASE}/app-icon-512.png`];
+self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
+self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))));
+self.addEventListener("fetch",event=>{if(event.request.method!=="GET")return;event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request).then(response=>response||caches.match(`${BASE}/`))))});
