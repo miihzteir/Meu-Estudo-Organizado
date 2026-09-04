@@ -108,7 +108,7 @@ window.MEO = window.MEO || {};
 
     const nomeUsuario = (db().state.profile.nome || '').trim();
     let html = `
-      <div class="page-head">
+      <div class="page-head home-hero">
         <div>
           <h1>Olá, ${nomeUsuario ? esc(nomeUsuario) : 'estudante'}!</h1>
           <p class="sub">Organize seus semestres, matérias e compromissos em um só lugar.</p>
