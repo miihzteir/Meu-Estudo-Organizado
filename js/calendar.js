@@ -30,6 +30,28 @@ window.MEO = window.MEO || {};
       return days;
     },
 
+    // Segunda-feira da semana que contém a data informada (dateKey "yyyy-mm-dd").
+    mondayOf(dateKey) {
+      const d = MEO.parseDateKey(dateKey);
+      const diff = (d.getDay() + 6) % 7; // 0 = segunda
+      d.setDate(d.getDate() - diff);
+      return MEO.toDateKey(d);
+    },
+
+    // 7 dias (segunda a domingo) a partir de um dateKey de segunda-feira.
+    buildWeekGrid(mondayKey) {
+      const start = MEO.parseDateKey(mondayKey);
+      const todayKey = MEO.toDateKey(new Date());
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const key = MEO.toDateKey(d);
+        days.push({ dateKey: key, day: d.getDate(), isToday: key === todayKey, weekday: d.getDay() });
+      }
+      return days;
+    },
+
     groupEventsByDate(events) {
       const map = {};
       events.forEach(ev => {

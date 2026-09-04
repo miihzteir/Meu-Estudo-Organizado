@@ -23,7 +23,7 @@ window.MEO = window.MEO || {};
       selectedDay: null
     },
     settingsTab: 'perfil',
-    subjectTab: 'pdfs'
+    subjectTab: 'visao'
   };
 
   // ------------------------------------------------------------
@@ -47,9 +47,15 @@ window.MEO = window.MEO || {};
     try {
       switch (MEO.state.route) {
         case 'visao-geral': html = MEO.views.visaoGeral(); break;
+        case 'tarefas': html = MEO.views.tarefas(); break;
+        case 'trabalhos': html = MEO.views.trabalhos(); break;
         case 'agenda': html = MEO.views.agenda(); break;
         case 'pomodoro': html = MEO.views.pomodoro(); break;
+        case 'planejador': html = MEO.views.planejador(); break;
+        case 'metas': html = MEO.views.metas(); break;
+        case 'notas-rapidas': html = MEO.views.notasRapidas(); break;
         case 'progresso': html = MEO.views.progresso(); break;
+        case 'favoritos': html = MEO.views.favoritos(); break;
         case 'links': html = MEO.views.links(); break;
         case 'configuracoes': html = MEO.views.configuracoes(); break;
         case 'materia': html = MEO.views.materiaDetalhe(MEO.state.params.id); break;
@@ -228,6 +234,29 @@ window.MEO = window.MEO || {};
         results.push({ tipo: 'Link da matéria', icon: 'link-2', titulo: l.titulo, sub: subj ? subj.nome : '', go: () => { MEO.state.subjectTab = 'links'; MEO.navigate('materia', { id: l.subjectId }); } });
       }
     });
+    db.list('tasks').forEach(t => {
+      if (t.titulo.toLowerCase().includes(q)) {
+        const subj = subjById[t.subjectId];
+        results.push({ tipo: 'Tarefa', icon: 'list-checks', titulo: t.titulo, sub: subj ? subj.nome : '', go: () => MEO.navigate('tarefas') });
+      }
+    });
+    db.list('trabalhos').forEach(tb => {
+      if (tb.titulo.toLowerCase().includes(q)) {
+        const subj = subjById[tb.subjectId];
+        results.push({ tipo: 'Trabalho', icon: 'users', titulo: tb.titulo, sub: subj ? subj.nome : '', go: () => MEO.navigate('trabalhos') });
+      }
+    });
+    db.list('metas').forEach(m => {
+      if (m.titulo.toLowerCase().includes(q)) {
+        const subj = subjById[m.subjectId];
+        results.push({ tipo: 'Meta', icon: 'flag', titulo: m.titulo, sub: subj ? subj.nome : '', go: () => MEO.navigate('metas') });
+      }
+    });
+    db.list('notas').forEach(n => {
+      if ((n.texto || '').toLowerCase().includes(q)) {
+        results.push({ tipo: 'Nota rápida', icon: 'notebook-text', titulo: n.texto.slice(0, 60), sub: '', go: () => MEO.navigate('notas-rapidas') });
+      }
+    });
     db.list('grades').forEach(g => {
       if (g.titulo.toLowerCase().includes(q)) {
         const subj = subjById[g.subjectId];
@@ -380,11 +409,13 @@ window.MEO = window.MEO || {};
     if (MEO.state.route === 'pomodoro') MEO.rerender();
   });
 
-  MEO.pomodoro.onSessionComplete = function (mins, subjectId) {
+  MEO.pomodoro.onSessionComplete = function (mins, subjectId, activity, taskId) {
     MEO.db.upsert('studySessions', {
       subjectId: subjectId || null,
       minutos: mins,
-      data: MEO.toDateKey(new Date())
+      data: MEO.toDateKey(new Date()),
+      atividade: (activity || '').trim() || null,
+      taskId: taskId || null
     });
   };
 

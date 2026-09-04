@@ -17,6 +17,8 @@ window.MEO = window.MEO || {};
     remainingMs: null,  // usado quando pausado
     cyclesToday: 0,
     subjectId: null,
+    activity: '',
+    taskId: null,
     tickHandle: null,
     listeners: [],
     ended: [],
@@ -52,7 +54,7 @@ window.MEO = window.MEO || {};
     if (engine.mode === MODES.foco) {
       engine.cyclesToday += 1;
       const mins = Math.round(durations().foco / 60000);
-      MEO.pomodoro.onSessionComplete && MEO.pomodoro.onSessionComplete(mins, engine.subjectId);
+      MEO.pomodoro.onSessionComplete && MEO.pomodoro.onSessionComplete(mins, engine.subjectId, engine.activity, engine.taskId);
     }
     engine.ended.forEach(fn => { try { fn(engine.mode); } catch (e) { console.error(e); } });
     emit();
@@ -75,7 +77,9 @@ window.MEO = window.MEO || {};
         remainingMs: remaining,
         totalMs: durations()[engine.mode],
         cyclesToday: engine.cyclesToday,
-        subjectId: engine.subjectId
+        subjectId: engine.subjectId,
+        activity: engine.activity,
+        taskId: engine.taskId
       };
     },
 
@@ -87,7 +91,9 @@ window.MEO = window.MEO || {};
       emit();
     },
 
-    setSubject(id) { engine.subjectId = id; emit(); },
+    setSubject(id) { engine.subjectId = id; if (!id) { engine.taskId = null; } emit(); },
+    setActivity(text) { engine.activity = text; emit(); },
+    setTask(id, label) { engine.taskId = id; engine.activity = label != null ? label : engine.activity; emit(); },
 
     start() {
       if (engine.running) return;

@@ -10,7 +10,7 @@ window.MEO = window.MEO || {};
   const STORAGE_KEY = 'meo_data_v1';
   const COLLECTIONS = [
     'semesters', 'subjects', 'events', 'summaries', 'flashcards',
-    'links', 'subjectLinks', 'pdfs', 'studySessions', 'faltas', 'grades'
+    'links', 'subjectLinks', 'pdfs', 'studySessions', 'faltas', 'grades', 'tasks', 'trabalhos', 'metas', 'notas'
   ];
 
   function emptyState() {

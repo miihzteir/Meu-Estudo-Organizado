@@ -95,25 +95,11 @@ window.MEO = window.MEO || {};
           <label for="mat-prof">Professor</label>
           <input type="text" id="mat-prof" value="${MEO.escapeHTML(existing?.professor || '')}">
         </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="mat-dia">Dia da semana</label>
-            <select id="mat-dia">
-              <option value="">Não definido</option>
-              ${MEO.diasDaSemana.map(d => `<option value="${d.v}" ${String(existing?.dia) === String(d.v) ? 'selected' : ''}>${d.l}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-field"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="mat-hi">Horário inicial</label>
-            <input type="time" id="mat-hi" value="${existing?.horaInicio || ''}">
-          </div>
-          <div class="form-field">
-            <label for="mat-hf">Horário final</label>
-            <input type="time" id="mat-hf" value="${existing?.horaFim || ''}">
-          </div>
+        <div class="form-field">
+          <label>Dias e horários de aula</label>
+          <p style="color:var(--texto-suave);font-size:12.5px;margin:-2px 0 8px;">Tem aula da mesma matéria em mais de um dia? Adicione uma linha pra cada.</p>
+          <div id="mat-horarios-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-horario" style="margin-top:4px;"><i data-lucide="plus" class="ic-sm"></i> Adicionar dia/horário</button>
         </div>
         <div class="form-field">
           <label>Cor</label>
@@ -128,17 +114,25 @@ window.MEO = window.MEO || {};
         <p style="font-size:12.5px;color:var(--texto-fraco);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:6px 0 -4px;">Faltas e notas (opcional)</p>
         <div class="form-row">
           <div class="form-field">
-            <label for="mat-total-aulas">Total de aulas previstas</label>
-            <input type="number" min="0" id="mat-total-aulas" placeholder="Ex.: 60" value="${existing?.totalAulas ?? ''}">
+            <label for="mat-limite-faltas">Limite de faltas</label>
+            <input type="number" min="0" step="1" id="mat-limite-faltas" placeholder="Ex.: 15" value="${existing?.limiteFaltas ?? ''}">
           </div>
           <div class="form-field">
-            <label for="mat-limite-faltas">Limite de faltas (%)</label>
-            <input type="number" min="0" max="100" step="1" id="mat-limite-faltas" value="${existing?.limiteFaltasPercent ?? 25}">
+            <label for="mat-media-aprovacao">Média para aprovação</label>
+            <input type="number" min="0" max="10" step="0.1" id="mat-media-aprovacao" value="${existing?.mediaAprovacao ?? 6}">
           </div>
         </div>
-        <div class="form-field" style="max-width:220px;">
-          <label for="mat-media-aprovacao">Média para aprovação</label>
-          <input type="number" min="0" max="10" step="0.1" id="mat-media-aprovacao" value="${existing?.mediaAprovacao ?? 6}">
+        <div class="form-field">
+          <label for="mat-meta-semanal">Meta de estudo por semana (opcional)</label>
+          <select id="mat-meta-semanal">
+            <option value="0" ${!existing?.metaSemanalMinutos ? 'selected' : ''}>Sem meta definida</option>
+            <option value="60" ${existing?.metaSemanalMinutos === 60 ? 'selected' : ''}>1 hora</option>
+            <option value="120" ${existing?.metaSemanalMinutos === 120 ? 'selected' : ''}>2 horas</option>
+            <option value="180" ${existing?.metaSemanalMinutos === 180 ? 'selected' : ''}>3 horas</option>
+            <option value="300" ${existing?.metaSemanalMinutos === 300 ? 'selected' : ''}>5 horas</option>
+            <option value="420" ${existing?.metaSemanalMinutos === 420 ? 'selected' : ''}>7 horas</option>
+          </select>
+          <span class="field-hint">Usada no Planejador de estudos pra sugerir o que estudar.</span>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancelar</button>
@@ -146,6 +140,60 @@ window.MEO = window.MEO || {};
         </div>
       </form>
     `);
+
+    // ---- Dias e horários (linhas dinâmicas) ----
+    const horariosList = overlay.querySelector('#mat-horarios-list');
+    function horarioRowHtml(h) {
+      h = h || {};
+      return `<div class="horario-row">
+        <div class="form-field">
+          <label>Dia da semana</label>
+          <select class="ha-dia">
+            <option value="">Não definido</option>
+            ${MEO.diasDaSemana.map(d => `<option value="${d.v}" ${String(h.dia) === String(d.v) ? 'selected' : ''}>${d.l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Início</label>
+          <input type="time" class="ha-inicio" value="${h.horaInicio || ''}">
+        </div>
+        <div class="form-field">
+          <label>Fim</label>
+          <input type="time" class="ha-fim" value="${h.horaFim || ''}">
+        </div>
+        <div class="form-field" style="max-width:110px;">
+          <label title="Uma noite pode valer mais de uma aula/falta">Aulas no encontro</label>
+          <input type="number" class="ha-aulas" min="1" step="1" value="${h.aulasPorEncontro || 1}">
+        </div>
+        <button type="button" class="btn-icon btn-danger" data-act="remover-horario" title="Remover" style="flex-shrink:0;margin-bottom:2px;"><i data-lucide="trash-2" class="ic-sm"></i></button>
+      </div>`;
+    }
+    function addHorarioRow(h) {
+      horariosList.insertAdjacentHTML('beforeend', horarioRowHtml(h));
+      MEO.refreshIcons(horariosList);
+    }
+    const existingHorarios = (existing?.horarios && existing.horarios.length)
+      ? existing.horarios
+      : (existing?.dia !== undefined && existing?.dia !== '' && existing?.dia != null)
+        ? [{ dia: existing.dia, horaInicio: existing.horaInicio, horaFim: existing.horaFim }]
+        : [];
+    if (existingHorarios.length) {
+      existingHorarios.forEach(h => addHorarioRow(h));
+    } else {
+      addHorarioRow();
+    }
+    horariosList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="remover-horario"]');
+      if (!btn) return;
+      const rows = horariosList.querySelectorAll('.horario-row');
+      if (rows.length <= 1) {
+        btn.closest('.horario-row').querySelectorAll('select, input').forEach(el => { el.value = ''; });
+        return;
+      }
+      btn.closest('.horario-row').remove();
+    });
+    overlay.querySelector('#btn-add-horario').addEventListener('click', () => addHorarioRow());
+
     let corAtual = corSelecionada;
     overlay.querySelectorAll('.color-swatch').forEach(sw => {
       sw.addEventListener('click', () => {
@@ -166,17 +214,23 @@ window.MEO = window.MEO || {};
         btn.disabled = false; btn.dataset.locked = '0';
         return;
       }
+      const horarios = Array.from(overlay.querySelectorAll('.horario-row')).map(row => ({
+        dia: row.querySelector('.ha-dia').value,
+        horaInicio: row.querySelector('.ha-inicio').value,
+        horaFim: row.querySelector('.ha-fim').value,
+        aulasPorEncontro: Math.max(1, Number(row.querySelector('.ha-aulas').value) || 1)
+      })).filter(h => h.dia !== '' || h.horaInicio || h.horaFim);
       const data = {
         id: existing?.id,
         semesterId,
         nome,
         professor: overlay.querySelector('#mat-prof').value.trim(),
-        dia: overlay.querySelector('#mat-dia').value,
-        horaInicio: overlay.querySelector('#mat-hi').value,
-        horaFim: overlay.querySelector('#mat-hf').value,
-        totalAulas: overlay.querySelector('#mat-total-aulas').value ? Number(overlay.querySelector('#mat-total-aulas').value) : null,
-        limiteFaltasPercent: overlay.querySelector('#mat-limite-faltas').value ? Number(overlay.querySelector('#mat-limite-faltas').value) : 25,
+        horarios,
+        // mantidos por compatibilidade com dados antigos (não usados na exibição)
+        dia: '', horaInicio: '', horaFim: '',
+        limiteFaltas: overlay.querySelector('#mat-limite-faltas').value ? Number(overlay.querySelector('#mat-limite-faltas').value) : null,
         mediaAprovacao: overlay.querySelector('#mat-media-aprovacao').value !== '' ? Number(overlay.querySelector('#mat-media-aprovacao').value) : 6,
+        metaSemanalMinutos: Number(overlay.querySelector('#mat-meta-semanal').value) || 0,
         cor: corAtual,
         observacoes: overlay.querySelector('#mat-obs').value.trim()
       };
@@ -284,6 +338,432 @@ window.MEO = window.MEO || {};
       MEO.db.upsert('events', data);
       MEO.modal.close();
       MEO.toast(isEdit ? 'Compromisso atualizado.' : 'Compromisso criado.', 'success');
+    });
+  };
+
+  // ---------------- Tarefa ----------------
+  MEO.forms.task = function (existing, defaults) {
+    defaults = defaults || {};
+    const isEdit = !!existing;
+    const semesters = MEO.db.list('semesters');
+    const subjects = MEO.db.list('subjects');
+    const prioridades = MEO.tasks.PRIORIDADES;
+    const statusList = MEO.tasks.STATUS;
+    const etiquetasStr = (existing?.etiquetas || []).join(', ');
+    const overlay = MEO.modal.open(`
+      <h2 class="modal-title">${isEdit ? 'Editar tarefa' : 'Nova tarefa'}</h2>
+      <form id="f-task">
+        <div class="form-field">
+          <label for="tk-titulo">Título *</label>
+          <input type="text" id="tk-titulo" value="${MEO.escapeHTML(existing?.titulo || '')}">
+          <span class="field-error" id="tk-titulo-err" hidden>Digite um título.</span>
+        </div>
+        <div class="form-field">
+          <label for="tk-desc">Descrição</label>
+          <textarea id="tk-desc">${MEO.escapeHTML(existing?.descricao || '')}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tk-semestre">Semestre (opcional)</label>
+            <select id="tk-semestre">
+              <option value="">Nenhum</option>
+              ${semesters.map(s => `<option value="${s.id}" ${(existing?.semesterId || defaults.semesterId) === s.id ? 'selected' : ''}>${MEO.escapeHTML(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="tk-materia">Matéria (opcional)</label>
+            <select id="tk-materia">
+              <option value="">Nenhuma</option>
+              ${subjects.map(s => `<option value="${s.id}" ${(existing?.subjectId || defaults.subjectId) === s.id ? 'selected' : ''}>${MEO.escapeHTML(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tk-data">Data / prazo</label>
+            <input type="date" id="tk-data" value="${existing?.data || defaults.data || ''}">
+          </div>
+          <div class="form-field">
+            <label for="tk-hora">Horário (opcional)</label>
+            <input type="time" id="tk-hora" value="${existing?.hora || ''}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tk-prioridade">Prioridade</label>
+            <select id="tk-prioridade">
+              ${Object.keys(prioridades).map(p => `<option value="${p}" ${(existing?.prioridade || 'media') === p ? 'selected' : ''}>${prioridades[p].label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="tk-status">Status</label>
+            <select id="tk-status">
+              ${Object.keys(statusList).map(s => `<option value="${s}" ${(existing?.status || 'nao_iniciado') === s ? 'selected' : ''}>${statusList[s].label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tk-recorrencia">Repetir</label>
+            <select id="tk-recorrencia">
+              <option value="" ${!existing?.recorrencia ? 'selected' : ''}>Não repetir</option>
+              <option value="diaria" ${existing?.recorrencia === 'diaria' ? 'selected' : ''}>Todo dia</option>
+              <option value="semanal" ${existing?.recorrencia === 'semanal' ? 'selected' : ''}>Toda semana</option>
+              <option value="mensal" ${existing?.recorrencia === 'mensal' ? 'selected' : ''}>Todo mês</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="tk-etiquetas">Etiquetas (separadas por vírgula)</label>
+            <input type="text" id="tk-etiquetas" placeholder="Ex.: leitura, urgente" value="${MEO.escapeHTML(etiquetasStr)}">
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Subtarefas</label>
+          <div id="tk-subtarefas-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-subtarefa" style="margin-top:4px;"><i data-lucide="plus" class="ic-sm"></i> Adicionar subtarefa</button>
+        </div>
+        <div class="form-field">
+          <label for="tk-obs">Observações</label>
+          <textarea id="tk-obs">${MEO.escapeHTML(existing?.observacoes || '')}</textarea>
+        </div>
+        <div class="checkbox-row form-field">
+          <input type="checkbox" id="tk-lembrete" ${existing?.lembrete ? 'checked' : ''}>
+          <label for="tk-lembrete" style="font-weight:600;">Quero um lembrete</label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="tk-submit"><i data-lucide="check" class="ic-sm"></i> Salvar</button>
+        </div>
+      </form>
+    `);
+
+    // ---- Subtarefas (linhas dinâmicas) ----
+    const subList = overlay.querySelector('#tk-subtarefas-list');
+    function subRowHtml(s) {
+      s = s || {};
+      return `<div class="subtask-row" data-subid="${s.id || MEO.uid('sub')}">
+        <input type="checkbox" class="sk-feita" ${s.feita ? 'checked' : ''}>
+        <input type="text" class="sk-texto" placeholder="Ex.: Buscar referências" value="${MEO.escapeHTML(s.texto || '')}">
+        <button type="button" class="btn-icon btn-danger" data-act="remover-subtarefa" title="Remover"><i data-lucide="trash-2" class="ic-sm"></i></button>
+      </div>`;
+    }
+    function addSubRow(s) {
+      subList.insertAdjacentHTML('beforeend', subRowHtml(s));
+      MEO.refreshIcons(subList);
+    }
+    (existing?.subtarefas || []).forEach(s => addSubRow(s));
+    subList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="remover-subtarefa"]');
+      if (!btn) return;
+      btn.closest('.subtask-row').remove();
+    });
+    overlay.querySelector('#btn-add-subtarefa').addEventListener('click', () => addSubRow());
+
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => MEO.modal.close());
+    overlay.querySelector('#f-task').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const btn = overlay.querySelector('#tk-submit');
+      if (!lockButton(btn)) return;
+      const titulo = overlay.querySelector('#tk-titulo').value.trim();
+      if (!titulo) {
+        overlay.querySelector('#tk-titulo').classList.add('invalid');
+        overlay.querySelector('#tk-titulo-err').hidden = false;
+        btn.disabled = false; btn.dataset.locked = '0';
+        return;
+      }
+      const subtarefas = Array.from(overlay.querySelectorAll('.subtask-row')).map(row => ({
+        id: row.dataset.subid,
+        texto: row.querySelector('.sk-texto').value.trim(),
+        feita: row.querySelector('.sk-feita').checked
+      })).filter(s => s.texto);
+      const etiquetas = overlay.querySelector('#tk-etiquetas').value.split(',').map(t => t.trim()).filter(Boolean);
+      const status = overlay.querySelector('#tk-status').value;
+      const data = {
+        id: existing?.id,
+        titulo,
+        descricao: overlay.querySelector('#tk-desc').value.trim(),
+        semesterId: overlay.querySelector('#tk-semestre').value || null,
+        subjectId: overlay.querySelector('#tk-materia').value || null,
+        data: overlay.querySelector('#tk-data').value || '',
+        hora: overlay.querySelector('#tk-hora').value || '',
+        prioridade: overlay.querySelector('#tk-prioridade').value,
+        status,
+        recorrencia: overlay.querySelector('#tk-recorrencia').value || '',
+        etiquetas,
+        subtarefas,
+        observacoes: overlay.querySelector('#tk-obs').value.trim(),
+        lembrete: overlay.querySelector('#tk-lembrete').checked,
+        concluidoEm: status === 'concluido' ? (existing?.concluidoEm || MEO.nowISO()) : null
+      };
+      MEO.db.upsert('tasks', data);
+      MEO.modal.close();
+      MEO.toast(isEdit ? 'Tarefa atualizada.' : 'Tarefa criada.', 'success');
+    });
+  };
+
+  // ---------------- Trabalho acadêmico ----------------
+  MEO.forms.trabalho = function (existing, defaults) {
+    defaults = defaults || {};
+    const isEdit = !!existing;
+    const semesters = MEO.db.list('semesters');
+    const subjects = MEO.db.list('subjects');
+    const statusList = MEO.trabalhos.STATUS;
+    const overlay = MEO.modal.open(`
+      <h2 class="modal-title">${isEdit ? 'Editar trabalho' : 'Novo trabalho acadêmico'}</h2>
+      <form id="f-trabalho">
+        <div class="form-field">
+          <label for="tb-titulo">Título *</label>
+          <input type="text" id="tb-titulo" value="${MEO.escapeHTML(existing?.titulo || '')}">
+          <span class="field-error" id="tb-titulo-err" hidden>Digite um título.</span>
+        </div>
+        <div class="form-field">
+          <label for="tb-desc">Descrição</label>
+          <textarea id="tb-desc">${MEO.escapeHTML(existing?.descricao || '')}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tb-semestre">Semestre (opcional)</label>
+            <select id="tb-semestre">
+              <option value="">Nenhum</option>
+              ${semesters.map(s => `<option value="${s.id}" ${(existing?.semesterId || defaults.semesterId) === s.id ? 'selected' : ''}>${MEO.escapeHTML(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="tb-materia">Matéria (opcional)</label>
+            <select id="tb-materia">
+              <option value="">Nenhuma</option>
+              ${subjects.map(s => `<option value="${s.id}" ${(existing?.subjectId || defaults.subjectId) === s.id ? 'selected' : ''}>${MEO.escapeHTML(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tb-entrega">Data de entrega</label>
+            <input type="date" id="tb-entrega" value="${existing?.dataEntrega || defaults.dataEntrega || ''}">
+          </div>
+          <div class="form-field">
+            <label for="tb-status">Status</label>
+            <select id="tb-status">
+              ${Object.keys(statusList).map(s => `<option value="${s}" ${(existing?.status || 'nao_iniciado') === s ? 'selected' : ''}>${statusList[s].label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>Integrantes do grupo</label>
+          <div id="tb-membros-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-membro" style="margin-top:4px;"><i data-lucide="plus" class="ic-sm"></i> Adicionar integrante</button>
+        </div>
+        <div class="form-field">
+          <label>Etapas do trabalho</label>
+          <div id="tb-etapas-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-etapa" style="margin-top:4px;"><i data-lucide="plus" class="ic-sm"></i> Adicionar etapa</button>
+        </div>
+        <div class="form-field">
+          <label for="tb-link">Link do trabalho (opcional)</label>
+          <input type="text" id="tb-link" placeholder="Ex.: link do Google Docs / Drive" value="${MEO.escapeHTML(existing?.link || '')}">
+        </div>
+        <div class="form-field">
+          <label for="tb-obs">Observações</label>
+          <textarea id="tb-obs">${MEO.escapeHTML(existing?.observacoes || '')}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="tb-submit"><i data-lucide="check" class="ic-sm"></i> Salvar</button>
+        </div>
+      </form>
+    `);
+
+    // ---- Integrantes (linhas dinâmicas) ----
+    const membrosList = overlay.querySelector('#tb-membros-list');
+    function membroRowHtml(m) {
+      m = m || {};
+      return `<div class="subtask-row member-row" data-memberid="${m.id || MEO.uid('mb')}">
+        <input type="text" class="mb-nome" placeholder="Nome" value="${MEO.escapeHTML(m.nome || '')}">
+        <input type="text" class="mb-funcao" placeholder="Função (opcional)" value="${MEO.escapeHTML(m.funcao || '')}">
+        <button type="button" class="btn-icon btn-danger" data-act="remover-membro" title="Remover"><i data-lucide="trash-2" class="ic-sm"></i></button>
+      </div>`;
+    }
+    function addMembroRow(m) {
+      membrosList.insertAdjacentHTML('beforeend', membroRowHtml(m));
+      MEO.refreshIcons(membrosList);
+    }
+    (existing?.integrantes || []).forEach(m => addMembroRow(m));
+    membrosList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="remover-membro"]');
+      if (!btn) return;
+      btn.closest('.member-row').remove();
+    });
+    overlay.querySelector('#btn-add-membro').addEventListener('click', () => addMembroRow());
+
+    // ---- Etapas (linhas dinâmicas, mesmo padrão de subtarefas) ----
+    const etapasList = overlay.querySelector('#tb-etapas-list');
+    function etapaRowHtml(et) {
+      et = et || {};
+      return `<div class="subtask-row" data-etapaid="${et.id || MEO.uid('et')}">
+        <input type="checkbox" class="et-feita" ${et.feita ? 'checked' : ''}>
+        <input type="text" class="et-texto" placeholder="Ex.: Definir tema e dividir partes" value="${MEO.escapeHTML(et.texto || '')}">
+        <button type="button" class="btn-icon btn-danger" data-act="remover-etapa" title="Remover"><i data-lucide="trash-2" class="ic-sm"></i></button>
+      </div>`;
+    }
+    function addEtapaRow(et) {
+      etapasList.insertAdjacentHTML('beforeend', etapaRowHtml(et));
+      MEO.refreshIcons(etapasList);
+    }
+    (existing?.etapas || []).forEach(et => addEtapaRow(et));
+    etapasList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="remover-etapa"]');
+      if (!btn) return;
+      btn.closest('.subtask-row').remove();
+    });
+    overlay.querySelector('#btn-add-etapa').addEventListener('click', () => addEtapaRow());
+
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => MEO.modal.close());
+    overlay.querySelector('#f-trabalho').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const btn = overlay.querySelector('#tb-submit');
+      if (!lockButton(btn)) return;
+      const titulo = overlay.querySelector('#tb-titulo').value.trim();
+      if (!titulo) {
+        overlay.querySelector('#tb-titulo').classList.add('invalid');
+        overlay.querySelector('#tb-titulo-err').hidden = false;
+        btn.disabled = false; btn.dataset.locked = '0';
+        return;
+      }
+      const integrantes = Array.from(overlay.querySelectorAll('.member-row')).map(row => ({
+        id: row.dataset.memberid,
+        nome: row.querySelector('.mb-nome').value.trim(),
+        funcao: row.querySelector('.mb-funcao').value.trim()
+      })).filter(m => m.nome);
+      const etapas = Array.from(overlay.querySelectorAll('#tb-etapas-list .subtask-row')).map(row => ({
+        id: row.dataset.etapaid,
+        texto: row.querySelector('.et-texto').value.trim(),
+        feita: row.querySelector('.et-feita').checked
+      })).filter(et => et.texto);
+      const status = overlay.querySelector('#tb-status').value;
+      const data = {
+        id: existing?.id,
+        titulo,
+        descricao: overlay.querySelector('#tb-desc').value.trim(),
+        semesterId: overlay.querySelector('#tb-semestre').value || null,
+        subjectId: overlay.querySelector('#tb-materia').value || null,
+        dataEntrega: overlay.querySelector('#tb-entrega').value || '',
+        status,
+        integrantes,
+        etapas,
+        link: overlay.querySelector('#tb-link').value.trim(),
+        observacoes: overlay.querySelector('#tb-obs').value.trim()
+      };
+      MEO.db.upsert('trabalhos', data);
+      MEO.modal.close();
+      MEO.toast(isEdit ? 'Trabalho atualizado.' : 'Trabalho criado.', 'success');
+    });
+  };
+
+  // ---------------- Meta ----------------
+  MEO.forms.meta = function (existing, defaults) {
+    defaults = defaults || {};
+    const isEdit = !!existing;
+    const subjects = MEO.db.list('subjects');
+    const overlay = MEO.modal.open(`
+      <h2 class="modal-title">${isEdit ? 'Editar meta' : 'Nova meta'}</h2>
+      <form id="f-meta">
+        <div class="form-field">
+          <label for="mt-titulo">Título *</label>
+          <input type="text" id="mt-titulo" placeholder="Ex.: Tirar média 8 em Fisiologia" value="${MEO.escapeHTML(existing?.titulo || '')}">
+          <span class="field-error" id="mt-titulo-err" hidden>Digite um título.</span>
+        </div>
+        <div class="form-field">
+          <label for="mt-desc">Descrição</label>
+          <textarea id="mt-desc">${MEO.escapeHTML(existing?.descricao || '')}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="mt-materia">Matéria (opcional)</label>
+            <select id="mt-materia">
+              <option value="">Nenhuma / meta geral</option>
+              ${subjects.map(s => `<option value="${s.id}" ${(existing?.subjectId || defaults.subjectId) === s.id ? 'selected' : ''}>${MEO.escapeHTML(s.nome)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="mt-prazo">Prazo (opcional)</label>
+            <input type="date" id="mt-prazo" value="${existing?.prazo || ''}">
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="mt-progresso">Progresso: <span id="mt-progresso-val">${existing?.progresso ?? 0}%</span></label>
+          <input type="range" id="mt-progresso" min="0" max="100" step="5" value="${existing?.progresso ?? 0}">
+        </div>
+        <div class="checkbox-row form-field">
+          <input type="checkbox" id="mt-concluida" ${existing?.concluida ? 'checked' : ''}>
+          <label for="mt-concluida" style="font-weight:600;">Meta concluída</label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="mt-submit"><i data-lucide="check" class="ic-sm"></i> Salvar</button>
+        </div>
+      </form>
+    `);
+    const progInput = overlay.querySelector('#mt-progresso');
+    const progVal = overlay.querySelector('#mt-progresso-val');
+    const concluidaChk = overlay.querySelector('#mt-concluida');
+    progInput.addEventListener('input', () => {
+      progVal.textContent = progInput.value + '%';
+      if (Number(progInput.value) >= 100) concluidaChk.checked = true;
+    });
+    concluidaChk.addEventListener('change', () => {
+      if (concluidaChk.checked) { progInput.value = 100; progVal.textContent = '100%'; }
+    });
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => MEO.modal.close());
+    overlay.querySelector('#f-meta').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const btn = overlay.querySelector('#mt-submit');
+      if (!lockButton(btn)) return;
+      const titulo = overlay.querySelector('#mt-titulo').value.trim();
+      if (!titulo) {
+        overlay.querySelector('#mt-titulo').classList.add('invalid');
+        overlay.querySelector('#mt-titulo-err').hidden = false;
+        btn.disabled = false; btn.dataset.locked = '0';
+        return;
+      }
+      const concluida = concluidaChk.checked;
+      const data = {
+        id: existing?.id,
+        titulo,
+        descricao: overlay.querySelector('#mt-desc').value.trim(),
+        subjectId: overlay.querySelector('#mt-materia').value || null,
+        prazo: overlay.querySelector('#mt-prazo').value || '',
+        progresso: Number(progInput.value),
+        concluida,
+        concluidoEm: concluida ? (existing?.concluidoEm || MEO.nowISO()) : null
+      };
+      MEO.db.upsert('metas', data);
+      MEO.modal.close();
+      MEO.toast(isEdit ? 'Meta atualizada.' : 'Meta criada.', 'success');
+    });
+  };
+
+  // ---------------- Nota rápida ----------------
+  MEO.forms.notaRapida = function (existing) {
+    const overlay = MEO.modal.open(`
+      <h2 class="modal-title">Editar nota</h2>
+      <form id="f-nota-rapida">
+        <div class="form-field">
+          <textarea id="nr-texto" style="min-height:140px;">${MEO.escapeHTML(existing?.texto || '')}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="nr-submit"><i data-lucide="check" class="ic-sm"></i> Salvar</button>
+        </div>
+      </form>
+    `);
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => MEO.modal.close());
+    overlay.querySelector('#f-nota-rapida').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const texto = overlay.querySelector('#nr-texto').value.trim();
+      if (!texto) { MEO.modal.close(); return; }
+      MEO.db.upsert('notas', { id: existing?.id, texto });
+      MEO.modal.close();
+      MEO.toast('Nota atualizada.', 'success');
     });
   };
 
@@ -412,6 +892,14 @@ window.MEO = window.MEO || {};
   // ---------------- Falta ----------------
   MEO.forms.falta = function (subjectId, existing) {
     const isEdit = !!existing;
+    const subj = MEO.db.get('subjects', subjectId);
+    const horariosSubj = (subj && subj.horarios) || [];
+    function aulasSugeridas(dateKey) {
+      if (!dateKey || !horariosSubj.length) return 1;
+      const dow = String(MEO.parseDateKey(dateKey).getDay());
+      const h = horariosSubj.find(x => String(x.dia) === dow);
+      return h ? (h.aulasPorEncontro || 1) : 1;
+    }
     const overlay = MEO.modal.open(`
       <h2 class="modal-title">${isEdit ? 'Editar falta' : 'Registrar falta'}</h2>
       <form id="f-falta">
@@ -422,7 +910,8 @@ window.MEO = window.MEO || {};
           </div>
           <div class="form-field">
             <label for="ft-qtd">Quantidade de aulas</label>
-            <input type="number" min="1" step="1" id="ft-qtd" value="${existing?.aulas || 1}">
+            <input type="number" min="1" step="1" id="ft-qtd" value="${existing?.aulas || aulasSugeridas(existing?.data || MEO.toDateKey(new Date()))}">
+            <span class="field-hint">Sugerido a partir do horário cadastrado da matéria — ajuste se precisar.</span>
           </div>
         </div>
         <div class="form-field">
@@ -435,6 +924,15 @@ window.MEO = window.MEO || {};
         </div>
       </form>
     `);
+    // Enquanto o usuário não mexer manualmente na quantidade, reajusta o
+    // sugerido conforme a data escolhida (ex.: aquele dia costuma ter 4 aulas).
+    const qtdInput = overlay.querySelector('#ft-qtd');
+    let qtdTocada = false;
+    qtdInput.addEventListener('input', () => { qtdTocada = true; });
+    overlay.querySelector('#ft-data').addEventListener('change', (e) => {
+      if (qtdTocada) return;
+      qtdInput.value = aulasSugeridas(e.target.value);
+    });
     overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => MEO.modal.close());
     overlay.querySelector('#f-falta').addEventListener('submit', (e) => {
       e.preventDefault();
@@ -456,28 +954,52 @@ window.MEO = window.MEO || {};
   // ---------------- Nota ----------------
   MEO.forms.grade = function (subjectId, existing) {
     const isEdit = !!existing;
+    const TIPOS_AVALIACAO = { prova: 'Prova', trabalho: 'Trabalho', seminario: 'Seminário/Apresentação', atividade: 'Atividade', outro: 'Outro' };
+    const notaMaximaExisting = existing?.notaMaxima ?? 10;
     const overlay = MEO.modal.open(`
-      <h2 class="modal-title">${isEdit ? 'Editar nota' : 'Nova nota'}</h2>
+      <h2 class="modal-title">${isEdit ? 'Editar avaliação' : 'Nova avaliação'}</h2>
+      <p class="modal-desc">Cadastre a prova ou trabalho assim que souber dele — a nota você preenche depois, quando sair.</p>
       <form id="f-grade">
         <div class="form-field">
-          <label for="gr-titulo">Avaliação *</label>
+          <label for="gr-titulo">Nome da avaliação *</label>
           <input type="text" id="gr-titulo" placeholder="Ex.: Prova 1" value="${MEO.escapeHTML(existing?.titulo || '')}">
           <span class="field-error" id="gr-titulo-err" hidden>Digite o nome da avaliação.</span>
         </div>
         <div class="form-row">
           <div class="form-field">
-            <label for="gr-nota">Nota (0 a 10) *</label>
-            <input type="number" min="0" max="10" step="0.1" id="gr-nota" value="${existing?.nota ?? ''}">
-            <span class="field-error" id="gr-nota-err" hidden>Digite uma nota entre 0 e 10.</span>
+            <label for="gr-tipo">Tipo</label>
+            <select id="gr-tipo">
+              ${Object.keys(TIPOS_AVALIACAO).map(t => `<option value="${t}" ${(existing?.tipo || 'prova') === t ? 'selected' : ''}>${TIPOS_AVALIACAO[t]}</option>`).join('')}
+            </select>
           </div>
           <div class="form-field">
-            <label for="gr-peso">Peso</label>
-            <input type="number" min="0.1" step="0.1" id="gr-peso" value="${existing?.peso ?? 1}">
+            <label for="gr-data">Data (opcional)</label>
+            <input type="date" id="gr-data" value="${existing?.data || ''}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="gr-nota">Nota obtida (deixe em branco se ainda não foi)</label>
+            <input type="number" min="0" step="0.1" id="gr-nota" value="${existing?.nota ?? ''}">
+            <span class="field-error" id="gr-nota-err" hidden>Digite uma nota válida (entre 0 e a nota máxima).</span>
+          </div>
+          <div class="form-field">
+            <label for="gr-nota-maxima">Nota máxima</label>
+            <input type="number" min="0.1" step="0.1" id="gr-nota-maxima" value="${notaMaximaExisting}">
           </div>
         </div>
         <div class="form-field">
-          <label for="gr-data">Data (opcional)</label>
-          <input type="date" id="gr-data" value="${existing?.data || ''}">
+          <label for="gr-peso">Peso</label>
+          <input type="number" min="0.1" step="0.1" id="gr-peso" value="${existing?.peso ?? 1}">
+        </div>
+        <div class="form-field">
+          <label>Conteúdo a estudar (checklist de preparação)</label>
+          <div id="gr-conteudo-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-conteudo" style="margin-top:4px;"><i data-lucide="plus" class="ic-sm"></i> Adicionar conteúdo</button>
+        </div>
+        <div class="form-field">
+          <label for="gr-obs">Observações</label>
+          <textarea id="gr-obs">${MEO.escapeHTML(existing?.observacoes || '')}</textarea>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancelar</button>
@@ -485,29 +1007,64 @@ window.MEO = window.MEO || {};
         </div>
       </form>
     `);
+
+    const conteudoList = overlay.querySelector('#gr-conteudo-list');
+    function conteudoRowHtml(c) {
+      c = c || {};
+      return `<div class="subtask-row" data-cid="${c.id || MEO.uid('cont')}">
+        <input type="checkbox" class="ct-feito" ${c.feito ? 'checked' : ''}>
+        <input type="text" class="ct-texto" placeholder="Ex.: Alterações da consciência" value="${MEO.escapeHTML(c.texto || '')}">
+        <button type="button" class="btn-icon btn-danger" data-act="remover-conteudo" title="Remover"><i data-lucide="trash-2" class="ic-sm"></i></button>
+      </div>`;
+    }
+    function addConteudoRow(c) {
+      conteudoList.insertAdjacentHTML('beforeend', conteudoRowHtml(c));
+      MEO.refreshIcons(conteudoList);
+    }
+    (existing?.conteudo || []).forEach(c => addConteudoRow(c));
+    conteudoList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="remover-conteudo"]');
+      if (!btn) return;
+      btn.closest('.subtask-row').remove();
+    });
+    overlay.querySelector('#btn-add-conteudo').addEventListener('click', () => addConteudoRow());
+
     overlay.querySelector('[data-act="cancel"]').addEventListener('click', () => MEO.modal.close());
     overlay.querySelector('#f-grade').addEventListener('submit', (e) => {
       e.preventDefault();
       const btn = overlay.querySelector('#gr-submit');
       if (!lockButton(btn)) return;
       const titulo = overlay.querySelector('#gr-titulo').value.trim();
+      const notaMaxima = Number(overlay.querySelector('#gr-nota-maxima').value) || 10;
       const notaVal = overlay.querySelector('#gr-nota').value;
       let ok = true;
       if (!titulo) { overlay.querySelector('#gr-titulo').classList.add('invalid'); overlay.querySelector('#gr-titulo-err').hidden = false; ok = false; }
-      const nota = Number(notaVal);
-      if (notaVal === '' || isNaN(nota) || nota < 0 || nota > 10) { overlay.querySelector('#gr-nota').classList.add('invalid'); overlay.querySelector('#gr-nota-err').hidden = false; ok = false; }
+      let nota = null;
+      if (notaVal !== '') {
+        nota = Number(notaVal);
+        if (isNaN(nota) || nota < 0 || nota > notaMaxima) { overlay.querySelector('#gr-nota').classList.add('invalid'); overlay.querySelector('#gr-nota-err').hidden = false; ok = false; }
+      }
       if (!ok) { btn.disabled = false; btn.dataset.locked = '0'; return; }
+      const conteudo = Array.from(overlay.querySelectorAll('#gr-conteudo-list .subtask-row')).map(row => ({
+        id: row.dataset.cid,
+        texto: row.querySelector('.ct-texto').value.trim(),
+        feito: row.querySelector('.ct-feito').checked
+      })).filter(c => c.texto);
       const data = {
         id: existing?.id,
         subjectId,
         titulo,
+        tipo: overlay.querySelector('#gr-tipo').value,
         nota,
+        notaMaxima,
         peso: Number(overlay.querySelector('#gr-peso').value) || 1,
-        data: overlay.querySelector('#gr-data').value || null
+        data: overlay.querySelector('#gr-data').value || null,
+        conteudo,
+        observacoes: overlay.querySelector('#gr-obs').value.trim()
       };
       MEO.db.upsert('grades', data);
       MEO.modal.close();
-      MEO.toast(isEdit ? 'Nota atualizada.' : 'Nota adicionada.', 'success');
+      MEO.toast(isEdit ? 'Avaliação atualizada.' : 'Avaliação criada.', 'success');
     });
   };
 
