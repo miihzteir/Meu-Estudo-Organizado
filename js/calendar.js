@@ -64,7 +64,9 @@ window.MEO = window.MEO || {};
       return map;
     },
 
-    TIPOS: {
+    // Tipos padrão de compromisso (usados quando a pessoa nunca personalizou
+    // nada em Configurações > Tipos de compromisso).
+    TIPOS_PADRAO: {
       prova: { label: 'Prova', icon: 'file-warning', color: '#c65a5a' },
       trabalho: { label: 'Trabalho', icon: 'clipboard-list', color: '#c98b6c' },
       aula: { label: 'Aula', icon: 'presentation', color: '#7c8fbf' },
@@ -72,15 +74,22 @@ window.MEO = window.MEO || {};
       outro: { label: 'Outro', icon: 'calendar-days', color: '#8f6b8c' }
     },
 
-    // Cor efetiva de um tipo de evento: usa a cor personalizada salva em
-    // Configurações (settings.coresTipos), se houver, senão cai na cor padrão
-    // do tipo. Usado tanto no calendário quanto na Visão geral, pra ficar tudo
-    // consistente em um só lugar.
+    // Retorna os tipos de compromisso em uso: os personalizados salvos em
+    // Configurações (settings.tiposCompromisso), se a pessoa já editou/criou
+    // algum, senão os tipos padrão. É um método (não uma lista fixa) pra
+    // sempre refletir edições, novos tipos e exclusões em tempo real.
+    tipos() {
+      const custom = MEO.db.state.settings.tiposCompromisso;
+      return (custom && Object.keys(custom).length) ? custom : this.TIPOS_PADRAO;
+    },
+
+    // Cor efetiva de um tipo de evento. "outro" é o tipo de reserva: se o
+    // tipo salvo no evento não existir mais (foi excluído), cai nele.
     corDoTipo(tipoKey) {
-      const key = (tipoKey && this.TIPOS[tipoKey]) ? tipoKey : 'outro';
-      const custom = MEO.db.state.settings.coresTipos;
-      if (custom && custom[key]) return custom[key];
-      return this.TIPOS[key].color;
+      const tipos = this.tipos();
+      const key = (tipoKey && tipos[tipoKey]) ? tipoKey : 'outro';
+      const tipo = tipos[key] || this.TIPOS_PADRAO.outro;
+      return tipo.color;
     }
   };
 

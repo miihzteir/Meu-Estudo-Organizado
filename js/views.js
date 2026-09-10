@@ -120,7 +120,7 @@ window.MEO = window.MEO || {};
     }
 
     function eventItem(e) {
-      const tipo = MEO.calendar.TIPOS[e.tipo] || MEO.calendar.TIPOS.outro;
+      const tipos = MEO.calendar.tipos(); const tipo = tipos[e.tipo] || tipos.outro;
       const corTipo = MEO.calendar.corDoTipo(e.tipo);
       return `<div class="item">
         <i data-lucide="${tipo.icon}" class="ic-sm" style="color:${corTipo}"></i>
@@ -1459,7 +1459,7 @@ window.MEO = window.MEO || {};
         html += `<div class="calendar-day ${day.inMonth ? '' : 'out'} ${day.isToday ? 'today' : ''}" data-day="${day.dateKey}">
           <span class="day-num">${day.day}</span>
           ${evs.slice(0, 3).map(e => {
-            const tipo = MEO.calendar.TIPOS[e.tipo] || MEO.calendar.TIPOS.outro;
+            const tipos = MEO.calendar.tipos(); const tipo = tipos[e.tipo] || tipos.outro;
             const corTipo = MEO.calendar.corDoTipo(e.tipo);
             return `<span class="ev-tag" style="background:${corTipo};${e.concluido ? 'opacity:.55;' : ''}"><i data-lucide="${tipo.icon}" class="ic"></i><span class="txt">${e.hora ? e.hora + ' ' : ''}${esc(e.titulo)}</span></span>`;
           }).join('')}
@@ -1486,7 +1486,7 @@ window.MEO = window.MEO || {};
   };
 
   function weekEventChip(e) {
-    const tipo = MEO.calendar.TIPOS[e.tipo] || MEO.calendar.TIPOS.outro;
+    const tipos = MEO.calendar.tipos(); const tipo = tipos[e.tipo] || tipos.outro;
     const corTipo = MEO.calendar.corDoTipo(e.tipo);
     return `<div class="week-item" data-kind="evento" data-id="${e.id}" style="background:${corTipo};${e.concluido ? 'opacity:.55;' : ''}">
       <i data-lucide="${tipo.icon}" class="ic-sm"></i>
@@ -1503,7 +1503,7 @@ window.MEO = window.MEO || {};
   }
 
   function eventRowHtml(e) {
-    const tipo = MEO.calendar.TIPOS[e.tipo] || MEO.calendar.TIPOS.outro;
+    const tipos = MEO.calendar.tipos(); const tipo = tipos[e.tipo] || tipos.outro;
     const corTipo = MEO.calendar.corDoTipo(e.tipo);
     const subj = e.subjectId ? subjectById(e.subjectId) : null;
     return `<div class="event-row ${e.concluido ? 'concluido' : ''}" data-id="${e.id}">
@@ -2114,7 +2114,7 @@ window.MEO = window.MEO || {};
   const SETTINGS_SECTIONS = [
     { id: 'perfil', label: 'Perfil e sincronização', icon: 'user-circle' },
     { id: 'graduacao', label: 'Minha graduação', icon: 'graduation-cap' },
-    { id: 'cores', label: 'Cores da agenda', icon: 'palette' },
+    { id: 'cores', label: 'Tipos de compromisso', icon: 'palette' },
     { id: 'pomodoro', label: 'Pomodoro', icon: 'timer' },
     { id: 'revisao', label: 'Revisão diária', icon: 'layers-3' },
     { id: 'backup', label: 'Backup e restauração', icon: 'database-backup' },
@@ -2194,21 +2194,33 @@ window.MEO = window.MEO || {};
 
           <div class="settings-section ${MEO.state.settingsTab === 'cores' ? 'active' : ''}" data-section="cores">
             <div class="card">
-              <h3 style="font-size:16px;margin-bottom:6px;">Cores dos tipos de compromisso</h3>
-              <p style="color:var(--texto-suave);font-size:13px;margin-bottom:16px;">Escolha uma cor pra cada tipo. Ela aparece tanto na Agenda/calendário quanto nos cards da Visão geral.</p>
-              <div class="tipo-cores-list">
-                ${Object.keys(MEO.calendar.TIPOS).map(t => {
-                  const tipoInfo = MEO.calendar.TIPOS[t];
-                  const corAtual = MEO.calendar.corDoTipo(t);
-                  return `<div class="tipo-cor-row" data-tipo="${t}">
-                    <span class="tipo-cor-icon" style="background:${corAtual}"><i data-lucide="${tipoInfo.icon}" class="ic-sm"></i></span>
-                    <span class="tipo-cor-label">${tipoInfo.label}</span>
-                    <input type="color" class="tipo-cor-input" data-tipo="${t}" value="${corAtual}">
-                  </div>`;
-                }).join('')}
+              <h3 style="font-size:16px;margin-bottom:6px;">Tipos de compromisso</h3>
+              <p style="color:var(--texto-suave);font-size:13px;margin-bottom:16px;">Adicione, renomeie, exclua ou mude a cor dos tipos usados na Agenda. Eles aparecem tanto no calendário quanto nos cards da Visão geral.</p>
+              <div class="tipo-cores-list" id="tipo-cores-list">
+                ${(() => {
+                  // Trabalha sobre uma cópia em memória (draft) em vez de ler direto das
+                  // configurações salvas: assim, se algo em segundo plano (ex.: status de
+                  // sincronização) disparar uma nova renderização enquanto a pessoa está
+                  // editando (adicionando/renomeando/excluindo, antes de clicar em Salvar),
+                  // as edições em andamento não são perdidas.
+                  if (!MEO.state.tiposEditDraft) {
+                    const t = MEO.calendar.tipos();
+                    MEO.state.tiposEditDraft = Object.keys(t).map(id => ({ id, label: t[id].label, icon: t[id].icon || 'tag', color: t[id].color }));
+                  }
+                  return MEO.state.tiposEditDraft.map((t, idx) => {
+                    const protegido = t.id === 'outro';
+                    return `<div class="tipo-cor-row" data-idx="${idx}" data-tipo="${t.id}" data-icon="${t.icon || 'tag'}">
+                      <span class="tipo-cor-icon" style="background:${t.color}"><i data-lucide="${t.icon || 'tag'}" class="ic-sm"></i></span>
+                      <input type="text" class="tipo-cor-label-input" value="${esc(t.label)}" placeholder="Nome do tipo">
+                      <input type="color" class="tipo-cor-input" value="${t.color}">
+                      <button type="button" class="btn-icon btn-danger" data-act="excluir-tipo" title="${protegido ? 'Este tipo não pode ser excluído (é o padrão de reserva)' : 'Excluir tipo'}" ${protegido ? 'disabled' : ''}><i data-lucide="trash-2" class="ic-sm"></i></button>
+                    </div>`;
+                  }).join('');
+                })()}
               </div>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-add-tipo" style="margin-top:6px;"><i data-lucide="plus" class="ic-sm"></i> Adicionar tipo</button>
               <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-                <button class="btn btn-primary" id="btn-salvar-cores"><i data-lucide="check" class="ic-sm"></i> ${saveLabel('btn-salvar-cores', 'Salvar cores')}</button>
+                <button class="btn btn-primary" id="btn-salvar-cores"><i data-lucide="check" class="ic-sm"></i> ${saveLabel('btn-salvar-cores', 'Salvar')}</button>
                 <button type="button" class="btn btn-ghost" id="btn-restaurar-cores"><i data-lucide="rotate-ccw" class="ic-sm"></i> Restaurar padrão</button>
               </div>
             </div>
@@ -2239,9 +2251,27 @@ window.MEO = window.MEO || {};
           </div>
 
           <div class="settings-section ${MEO.state.settingsTab === 'backup' ? 'active' : ''}" data-section="backup">
+            <div class="card" style="margin-bottom:16px;">
+              <h3 style="font-size:15px;margin-bottom:10px;">Sincronização com o Google</h3>
+              ${user ? `
+                <div class="profile-box" style="margin-bottom:12px;">
+                  ${user.photoURL ? `<img class="avatar" src="${user.photoURL}" alt="">` : `<div class="avatar-fallback"><i data-lucide="user" class="ic"></i></div>`}
+                  <div>
+                    <div style="font-weight:700;">${esc(user.displayName || 'Sem nome')}</div>
+                    <div style="font-size:12.5px;color:var(--texto-fraco);">${esc(user.email || '')}</div>
+                  </div>
+                </div>
+                <div style="margin-bottom:10px;"><span class="sync-badge ${MEO._syncStatus || 'nuvem'}" data-sync-badge></span></div>
+                <p style="color:var(--texto-suave);font-size:12.8px;">Tudo que você cadastra é salvo automaticamente na sua conta Google — não precisa exportar nada manualmente pra não perder seus dados.</p>
+              ` : `
+                <p style="color:var(--texto-suave);font-size:13.5px;margin-bottom:12px;">Você ainda não está conectado(a) com o Google. Assim, seus dados ficam salvos só neste aparelho — se ele quebrar, for formatado ou trocado, tudo se perde.</p>
+                <div style="margin-bottom:12px;"><span class="sync-badge ${MEO._syncStatus || 'local'}" data-sync-badge></span></div>
+                <button class="btn btn-primary" id="btn-sign-in-backup"><i data-lucide="log-in" class="ic-sm"></i> Entrar com Google</button>
+              `}
+            </div>
             <div class="card">
               <h3 style="font-size:16px;margin-bottom:10px;">Backup e restauração</h3>
-              <p style="color:var(--texto-suave);font-size:13.5px;margin-bottom:16px;">Exporte todos os seus dados em um arquivo JSON, ou restaure a partir de um backup anterior.</p>
+              <p style="color:var(--texto-suave);font-size:13.5px;margin-bottom:16px;">Além da sincronização automática com o Google, você também pode exportar um arquivo JSON como cópia extra, ou restaurar a partir de um backup anterior.</p>
               <div style="display:flex;gap:10px;flex-wrap:wrap;">
                 <button class="btn btn-secondary" id="btn-exportar"><i data-lucide="download" class="ic-sm"></i> Exportar dados (JSON)</button>
                 <label class="btn btn-secondary" style="cursor:pointer;"><i data-lucide="upload" class="ic-sm"></i> Importar backup<input type="file" accept="application/json" id="input-importar" hidden></label>
@@ -2278,9 +2308,17 @@ window.MEO = window.MEO || {};
   };
 
   function wireConfiguracoes(root) {
+    // A cada re-render o menu de abas é recriado do zero, então em telas
+    // estreitas (onde ele vira uma faixa horizontal rolável) a rolagem
+    // sempre voltava pro início — dava a impressão de que "reiniciava".
+    // Aqui a gente garante que a aba ativa continue visível.
+    const activeNavBtn = root.querySelector('.settings-nav button.active');
+    if (activeNavBtn) activeNavBtn.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+
     root.querySelectorAll('.settings-nav button').forEach(btn => btn.addEventListener('click', () => { MEO.state.settingsTab = btn.dataset.sec; MEO.rerender(); }));
 
     const signIn = root.querySelector('#btn-sign-in'); if (signIn) signIn.addEventListener('click', () => MEO.auth.signIn());
+    const signInBackup = root.querySelector('#btn-sign-in-backup'); if (signInBackup) signInBackup.addEventListener('click', () => MEO.auth.signIn());
     const signOut = root.querySelector('#btn-sign-out'); if (signOut) signOut.addEventListener('click', () => MEO.auth.signOut());
 
     const excluirContaBtn = root.querySelector('#btn-excluir-conta');
@@ -2329,25 +2367,142 @@ window.MEO = window.MEO || {};
       MEO.toast('Graduação salva.', 'success');
     });
 
+    // A lista de tipos de compromisso é renderizada a partir de MEO.state.tiposEditDraft
+    // (ver a montagem do HTML acima). Cada linha guarda seu índice nesse array em
+    // data-idx, e toda edição (nome, cor, adicionar, excluir) atualiza o draft
+    // imediatamente — assim, se o app re-renderizar por qualquer motivo em segundo
+    // plano (ex.: mudança de status de sincronização) enquanto a pessoa ainda está
+    // editando, o que já foi digitado/excluído não se perde.
+    const tiposList = root.querySelector('#tipo-cores-list');
+    const draft = MEO.state.tiposEditDraft || [];
+
+    function slugifyTipo(label, ignoreIdx) {
+      const base = (label || 'tipo').toString().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tipo';
+      let id = base, n = 2;
+      const existentes = new Set(draft.map((t, i) => (i === ignoreIdx ? null : t.id)).filter(Boolean));
+      while (existentes.has(id)) { id = `${base}-${n}`; n++; }
+      return id;
+    }
+
+    root.querySelectorAll('.tipo-cor-label-input').forEach(input => {
+      input.addEventListener('input', () => {
+        const row = input.closest('.tipo-cor-row');
+        const idx = Number(row.dataset.idx);
+        if (draft[idx]) draft[idx].label = input.value;
+        input.classList.remove('invalid');
+      });
+    });
     root.querySelectorAll('.tipo-cor-input').forEach(input => {
       input.addEventListener('input', () => {
         const row = input.closest('.tipo-cor-row');
+        const idx = Number(row.dataset.idx);
+        if (draft[idx]) draft[idx].color = input.value;
         const icon = row.querySelector('.tipo-cor-icon');
         if (icon) icon.style.background = input.value;
       });
     });
+
+    const addTipoBtn = root.querySelector('#btn-add-tipo');
+    if (addTipoBtn) addTipoBtn.addEventListener('click', () => {
+      draft.push({ id: '', label: '', icon: 'tag', color: '#8f6b8c' });
+      const idx = draft.length - 1;
+      tiposList.insertAdjacentHTML('beforeend', `<div class="tipo-cor-row" data-idx="${idx}" data-tipo="" data-icon="tag">
+        <span class="tipo-cor-icon" style="background:#8f6b8c"><i data-lucide="tag" class="ic-sm"></i></span>
+        <input type="text" class="tipo-cor-label-input" value="" placeholder="Nome do tipo">
+        <input type="color" class="tipo-cor-input" value="#8f6b8c">
+        <button type="button" class="btn-icon btn-danger" data-act="excluir-tipo" title="Excluir tipo"><i data-lucide="trash-2" class="ic-sm"></i></button>
+      </div>`);
+      MEO.refreshIcons(tiposList);
+      const novaRow = tiposList.querySelector('.tipo-cor-row:last-child');
+      const novoInput = novaRow.querySelector('.tipo-cor-label-input');
+      if (novoInput) {
+        novoInput.focus();
+        novoInput.addEventListener('input', () => { draft[idx].label = novoInput.value; novoInput.classList.remove('invalid'); });
+      }
+      const novoColor = novaRow.querySelector('.tipo-cor-input');
+      if (novoColor) novoColor.addEventListener('input', () => {
+        draft[idx].color = novoColor.value;
+        const icon = novaRow.querySelector('.tipo-cor-icon');
+        if (icon) icon.style.background = novoColor.value;
+      });
+    });
+
+    function draftParaObjeto() {
+      const tiposCompromisso = {};
+      let temErro = false;
+      draft.forEach((t, idx) => {
+        const label = (t.label || '').trim();
+        if (!label) {
+          const row = root.querySelector(`#tipo-cores-list .tipo-cor-row[data-idx="${idx}"] .tipo-cor-label-input`);
+          if (row) row.classList.add('invalid');
+          temErro = true;
+          return;
+        }
+        const id = t.id || slugifyTipo(label, idx);
+        t.id = id; // fixa o id definitivo (evita duplicar se salvar de novo sem recarregar)
+        tiposCompromisso[id] = { label, icon: t.icon || 'tag', color: t.color || '#8f6b8c' };
+      });
+      if (temErro) return null;
+      if (!tiposCompromisso.outro) tiposCompromisso.outro = MEO.calendar.TIPOS_PADRAO.outro;
+      return tiposCompromisso;
+    }
+
+    tiposList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="excluir-tipo"]');
+      if (!btn || btn.disabled) return;
+      const row = btn.closest('.tipo-cor-row');
+      const idx = Number(row.dataset.idx);
+      const item = draft[idx];
+      const label = (item && item.label) || 'este tipo';
+      if (!item || !item.id) { draft.splice(idx, 1); row.remove(); reindexarLinhas(); return; } // linha nova, ainda não salva — remove direto
+      const tipoId = item.id;
+      const emUso = db().list('events').filter(ev => ev.tipo === tipoId).length;
+      MEO.confirmModal({
+        title: `Excluir o tipo "${label}"?`,
+        desc: emUso
+          ? `${emUso} compromisso${emUso === 1 ? '' : 's'} usa${emUso === 1 ? '' : 'm'} esse tipo. Eles não serão apagados, mas passarão a aparecer como "Outro" até você editá-los.`
+          : 'Esta ação não pode ser desfeita.',
+        confirmLabel: 'Excluir', danger: true,
+        // remove do draft e já persiste na hora — assim uma re-renderização em segundo
+        // plano (ex.: status de sincronização) nunca "ressuscita" o tipo excluído
+        onConfirm: () => {
+          const posAtual = draft.indexOf(item);
+          if (posAtual !== -1) draft.splice(posAtual, 1);
+          const rowAtual = root.querySelector(`#tipo-cores-list .tipo-cor-row[data-tipo="${tipoId}"]`);
+          if (rowAtual) rowAtual.remove();
+          reindexarLinhas();
+          const tiposCompromisso = draftParaObjeto();
+          if (tiposCompromisso) db().setSettings({ tiposCompromisso });
+          MEO.toast('Tipo excluído.', 'success');
+        }
+      });
+    });
+
+    function reindexarLinhas() {
+      root.querySelectorAll('#tipo-cores-list .tipo-cor-row').forEach((row, i) => { row.dataset.idx = i; });
+    }
+
     const coresBtn = root.querySelector('#btn-salvar-cores');
     if (coresBtn) coresBtn.addEventListener('click', () => {
-      const coresTipos = {};
-      root.querySelectorAll('.tipo-cor-input').forEach(input => { coresTipos[input.dataset.tipo] = input.value; });
+      const tiposCompromisso = draftParaObjeto();
+      if (!tiposCompromisso) { MEO.toast('Dê um nome para cada tipo antes de salvar.', 'error'); return; }
       flashSaved('btn-salvar-cores');
-      db().setSettings({ coresTipos });
-      MEO.toast('Cores salvas.', 'success');
+      db().setSettings({ tiposCompromisso });
+      MEO.toast('Tipos de compromisso salvos.', 'success');
     });
     const restaurarCoresBtn = root.querySelector('#btn-restaurar-cores');
     if (restaurarCoresBtn) restaurarCoresBtn.addEventListener('click', () => {
-      db().setSettings({ coresTipos: {} });
-      MEO.toast('Cores restauradas para o padrão.', 'success');
+      MEO.confirmModal({
+        title: 'Restaurar tipos padrão?',
+        desc: 'Isso desfaz nomes, cores e tipos personalizados, voltando aos 5 tipos originais (Prova, Trabalho, Aula, Lembrete, Outro).',
+        confirmLabel: 'Restaurar', danger: true,
+        onConfirm: () => {
+          MEO.state.tiposEditDraft = null;
+          db().setSettings({ tiposCompromisso: {} });
+          MEO.toast('Tipos restaurados para o padrão.', 'success');
+        }
+      });
     });
 
     const pomoBtn = root.querySelector('#btn-salvar-pomo');

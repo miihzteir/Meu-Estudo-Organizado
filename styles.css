@@ -615,11 +615,14 @@ input.pomo-subject-select { font-family: inherit; }
 }
 /* Seletor de cores por tipo de compromisso (Configurações → Cores da agenda) */
 .tipo-cores-list { display: flex; flex-direction: column; gap: 4px; }
-.tipo-cor-row { display: flex; align-items: center; gap: 12px; padding: 8px 4px; border-radius: 10px; }
+.tipo-cor-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: 10px; flex-wrap: wrap; }
 .tipo-cor-row:hover { background: var(--fundo-alt); }
 .tipo-cor-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; transition: background .1s ease; }
 .tipo-cor-label { flex: 1; font-weight: 600; font-size: 14px; color: var(--texto); }
-.tipo-cor-input { width: 44px; height: 34px; padding: 2px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; cursor: pointer; }
+.tipo-cor-label-input { flex: 1; min-width: 110px; border: 1px solid transparent; background: transparent; font-weight: 600; font-size: 14px; color: var(--texto); padding: 7px 8px; border-radius: 8px; min-height: 36px; }
+.tipo-cor-label-input:hover, .tipo-cor-label-input:focus { border-color: var(--borda); background: #fff; outline: none; }
+.tipo-cor-label-input.invalid { border-color: var(--erro); }
+.tipo-cor-input { width: 44px; height: 34px; padding: 2px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; cursor: pointer; flex-shrink: 0; }
 .tipo-cor-input::-webkit-color-swatch-wrapper { padding: 2px; }
 .tipo-cor-input::-webkit-color-swatch { border: none; border-radius: 5px; }
 
