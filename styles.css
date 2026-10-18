@@ -32,6 +32,10 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* Rede de segurança contra textos/palavras longas ultrapassando a margem do
+   elemento em qualquer tela (nome de matéria grande, e-mail, link, etc.) —
+   regras mais específicas (nowrap + ellipsis, por ex.) continuam valendo. */
+* { overflow-wrap: break-word; min-width: 0; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -62,9 +66,15 @@ img { max-width: 100%; }
 
 ::selection { background: var(--cor-acento); color: #fff; }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--borda-forte); border-radius: 8px; }
+/* Barra de rolagem discreta/translúcida em todo o app (Chrome/Edge/Safari + Firefox) */
+* { scrollbar-width: thin; scrollbar-color: rgba(110, 79, 111, .25) transparent; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: rgba(110, 79, 111, .25); border-radius: 8px;
+  border: 2px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgba(110, 79, 111, .45); background-clip: content-box; }
 
 .ic { width: 18px; height: 18px; stroke-width: 2; vertical-align: -4px; flex-shrink: 0; }
 .ic-sm { width: 15px; height: 15px; vertical-align: -3px; }
@@ -207,7 +217,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 /* ---------------- cartões ---------------- */
 .card {
   background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio);
-  box-shadow: var(--sombra); padding: 20px;
+  box-shadow: var(--sombra); padding: 20px; transition: box-shadow .18s ease, transform .18s ease;
 }
 .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
 
@@ -222,6 +232,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .semester-card .contagem { color: var(--texto-fraco); font-size: 12.5px; }
 .semester-card .acoes { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 
+.semester-card:hover, .subject-card:hover { transform: translateY(-2px); box-shadow: var(--sombra-forte); }
 .subject-card { display: flex; flex-direction: column; gap: 8px; cursor: pointer; border-left: 5px solid var(--cor-principal-clara); }
 .subject-card h3 { font-size: 16.5px; }
 .subject-card .meta-row { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--texto-suave); flex-wrap: wrap; }
@@ -325,6 +336,12 @@ input.invalid, textarea.invalid { border-color: var(--erro); }
 .item-row {
   display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 13px;
   background: var(--cartao); border: 1px solid var(--borda); margin-bottom: 10px; flex-wrap: wrap;
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.item-row, .task-row, .event-row, .note-card, .link-card { transition: box-shadow .15s ease, transform .15s ease; }
+.item-row:hover, .task-row:hover, .event-row:hover, .note-card:hover, .link-card:hover { box-shadow: var(--sombra); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 .item-row .item-icon { width: 38px; height: 38px; border-radius: 12px; background: var(--fundo-alt); display: flex; align-items: center; justify-content: center; color: var(--cor-principal); flex-shrink: 0; }
 .item-row .item-icon.v1 { background: linear-gradient(135deg, #faf2ee, #f5e4da); color: #ad6a3d; }
@@ -614,7 +631,7 @@ input.pomo-subject-select { font-family: inherit; }
   background-size: 78px auto, auto;
 }
 /* Seletor de cores por tipo de compromisso (Configurações → Cores da agenda) */
-.tipo-cores-list { display: flex; flex-direction: column; gap: 4px; }
+.tipo-cores-list { display: flex; flex-direction: column; gap: 4px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
 .tipo-cor-row { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-radius: 10px; flex-wrap: wrap; }
 .tipo-cor-row:hover { background: var(--fundo-alt); }
 .tipo-cor-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; transition: background .1s ease; }
@@ -656,8 +673,8 @@ input.pomo-subject-select { font-family: inherit; }
 .toast-error { background: var(--erro); }
 
 /* ---------------- utilitários de animação ---------------- */
-.fade-in { animation: fadeIn .12s ease-out; }
-@keyframes fadeIn { from { opacity: .55; } to { opacity: 1; } }
+.fade-in { animation: fadeIn .22s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
 .progress-bar-mini { height: 6px; border-radius: 6px; background: var(--fundo-alt); overflow: hidden; }
 .progress-bar-mini .fill { height: 100%; background: var(--cor-principal); border-radius: 6px; }
