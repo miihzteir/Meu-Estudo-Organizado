@@ -108,7 +108,7 @@ window.MEO = window.MEO || {};
     const tarefasParaHome = tarefasAtrasadas.concat(tarefasHoje.filter(t => !MEO.tasks.isOverdue(t)));
 
     function taskItem(t) {
-      const prio = MEO.tasks.PRIORIDADES[t.prioridade || 'media'];
+      const prio = MEO.tasks.PRIORIDADES[t.prioridade] || MEO.tasks.PRIORIDADES.media;
       const subj = t.subjectId ? subjectById(t.subjectId) : null;
       return `<div class="item task-home-item" data-taskid="${t.id}">
         <button class="task-check-mini" data-act="concluir-tarefa-home" data-id="${t.id}" title="Concluir">
@@ -763,7 +763,7 @@ window.MEO = window.MEO || {};
   }
 
   function wireMateriaDetalhe(root) {
-    const back = root.querySelector('#back-to-overview'); if (back) back.addEventListener('click', () => MEO.navigate('visao-geral'));
+    const back = root.querySelector('#back-to-overview'); if (back) back.addEventListener('click', () => MEO.goBack('visao-geral'));
     const subjId = MEO.state.params.id;
     const subj = subjectById(subjId);
     if (!subj) return;
@@ -1060,7 +1060,7 @@ window.MEO = window.MEO || {};
       if (overdueA !== overdueB) return overdueA - overdueB;
       const da = a.data || '9999-99-99', db_ = b.data || '9999-99-99';
       if (da !== db_) return da.localeCompare(db_);
-      return MEO.tasks.PRIORIDADES[b.prioridade || 'media'].ordem - MEO.tasks.PRIORIDADES[a.prioridade || 'media'].ordem;
+      return (MEO.tasks.PRIORIDADES[b.prioridade] || MEO.tasks.PRIORIDADES.media).ordem - (MEO.tasks.PRIORIDADES[a.prioridade] || MEO.tasks.PRIORIDADES.media).ordem;
     });
 
     let html = `
@@ -1094,8 +1094,8 @@ window.MEO = window.MEO || {};
 
   function taskRowHtml(t) {
     const subj = t.subjectId ? subjectById(t.subjectId) : null;
-    const prio = MEO.tasks.PRIORIDADES[t.prioridade || 'media'];
-    const statusInfo = MEO.tasks.STATUS[t.status || 'nao_iniciado'];
+    const prio = MEO.tasks.PRIORIDADES[t.prioridade] || MEO.tasks.PRIORIDADES.media;
+    const statusInfo = MEO.tasks.STATUS[t.status] || MEO.tasks.STATUS.nao_iniciado;
     const overdue = MEO.tasks.isOverdue(t);
     const progresso = MEO.tasks.subtaskProgress(t);
     const done = t.status === 'concluido';
@@ -1212,7 +1212,7 @@ window.MEO = window.MEO || {};
 
   function trabalhoRowHtml(t) {
     const subj = t.subjectId ? subjectById(t.subjectId) : null;
-    const statusInfo = MEO.trabalhos.STATUS[t.status || 'nao_iniciado'];
+    const statusInfo = MEO.trabalhos.STATUS[t.status] || MEO.trabalhos.STATUS.nao_iniciado;
     const overdue = MEO.trabalhos.isOverdue(t);
     const progresso = MEO.trabalhos.etapaProgress(t);
     const done = t.status === 'concluido';
@@ -1495,7 +1495,7 @@ window.MEO = window.MEO || {};
   }
 
   function weekTaskChip(t) {
-    const prio = MEO.tasks.PRIORIDADES[t.prioridade || 'media'];
+    const prio = MEO.tasks.PRIORIDADES[t.prioridade] || MEO.tasks.PRIORIDADES.media;
     return `<div class="week-item week-item-task ${t.status === 'concluido' ? 'concluido' : ''}" data-kind="tarefa" data-id="${t.id}" style="border-color:${prio.cor};">
       <i data-lucide="list-checks" class="ic-sm" style="color:${prio.cor};"></i>
       <span class="txt">${esc(t.titulo)}</span>
