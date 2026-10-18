@@ -673,8 +673,8 @@ input.pomo-subject-select { font-family: inherit; }
 .toast-error { background: var(--erro); }
 
 /* ---------------- utilitários de animação ---------------- */
-.fade-in { animation: fadeIn .22s ease-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .16s ease-out; }
+@keyframes fadeIn { from { opacity: .5; } to { opacity: 1; } }
 
 .progress-bar-mini { height: 6px; border-radius: 6px; background: var(--fundo-alt); overflow: hidden; }
 .progress-bar-mini .fill { height: 100%; background: var(--cor-principal); border-radius: 6px; }

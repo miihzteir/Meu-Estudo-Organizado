@@ -52,7 +52,7 @@ window.MEO = window.MEO || {};
     MEO.state.route = route;
     MEO.state.params = params || {};
     closeSidebarMobile();
-    render();
+    render(true);
     window.scrollTo(0, 0);
     updateActiveNav();
   };
@@ -84,15 +84,19 @@ window.MEO = window.MEO || {};
     MEO.state.route = st.route || 'visao-geral';
     MEO.state.params = st.params || {};
     closeSidebarMobile();
-    render();
+    render(true);
     updateActiveNav();
     const targetScroll = st.scrollY || 0;
     requestAnimationFrame(() => window.scrollTo(0, targetScroll));
   });
 
-  MEO.rerender = function () { render(); };
+  MEO.rerender = function () { render(false); };
 
-  function render() {
+  // `navigating` só é true quando a tela realmente trocou (MEO.navigate / voltar).
+  // Outras chamadas a render() são atualizações em segundo plano (sincronização,
+  // status de login, tique do pomodoro etc.) e não devem repetir a animação de
+  // entrada — é isso que estava causando a tela "piscar" sozinha no celular.
+  function render(navigating) {
     const root = document.getElementById('view-root');
     if (!root) return;
     let html = '';
@@ -117,7 +121,7 @@ window.MEO = window.MEO || {};
       console.error('Erro ao renderizar view', e);
       html = '<div class="empty-state"><h3>Ops, algo deu errado ao mostrar esta página.</h3><p>Tente novamente ou volte para a Visão geral.</p></div>';
     }
-    root.innerHTML = `<div class="fade-in">${html}</div>`;
+    root.innerHTML = navigating ? `<div class="fade-in">${html}</div>` : html;
     MEO.refreshIcons();
     try {
       if (MEO.views.afterRender) MEO.views.afterRender(MEO.state.route);
@@ -520,7 +524,7 @@ window.MEO = window.MEO || {};
 
     MEO.pomodoro.onTick(() => { if (MEO.state.route === 'pomodoro') MEO.views.updatePomodoroDisplay && MEO.views.updatePomodoroDisplay(); });
 
-    render();
+    render(true);
     updateActiveNav();
     MEO.refreshIcons();
     // Entrada inicial do histórico, pra servir de "base" ao empilhar as próximas telas.

@@ -3,7 +3,7 @@
 // Cacheia o essencial do app para uso offline (app shell).
 // Usa caminhos relativos para funcionar em qualquer subpasta (GitHub Pages).
 // ============================================================
-const CACHE_NAME = 'meo-cache-v1';
+const CACHE_NAME = 'meo-cache-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -51,16 +51,18 @@ self.addEventListener('fetch', (event) => {
   // Não interceptar chamadas para outros domínios (Firebase, Google, CDNs, fontes)
   if (url.origin !== self.location.origin) return;
 
+  // Busca a rede PRIMEIRO: assim, sempre que houver internet, a pessoa recebe a
+  // versão mais nova do app assim que ela é publicada — sem precisar limpar o
+  // cache do navegador manualmente. Só usa a cópia guardada se estiver offline
+  // (ou se a rede falhar por qualquer outro motivo), o que mantém o app
+  // funcionando sem internet.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const fetchPromise = fetch(req).then((networkRes) => {
-        if (networkRes && networkRes.status === 200) {
-          const clone = networkRes.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
-        }
-        return networkRes;
-      }).catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(req).then((networkRes) => {
+      if (networkRes && networkRes.status === 200) {
+        const clone = networkRes.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+      }
+      return networkRes;
+    }).catch(() => caches.match(req))
   );
 });
