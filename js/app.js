@@ -27,20 +27,76 @@ window.MEO = window.MEO || {};
   };
 
   // ------------------------------------------------------------
-  // Navegação
+  // Navegação (com histórico real do navegador)
   // ------------------------------------------------------------
+  // Cada tela nova abre uma entrada de histórico própria, então o botão/gesto
+  // de voltar do celular (e o botão "voltar" do navegador) vão desfazendo a
+  // navegação uma tela por vez, na ordem em que a pessoa entrou nelas — sem
+  // limite — em vez de sair do app de primeira. A posição de rolagem de cada
+  // tela também é guardada, para não "subir" a página ao voltar.
+  let navDepth = 0; // quantas entradas de histórico internas já empilhamos nesta sessão
+  let suppressPop = false; // evita que um history.back() disparado por nós mesmos seja tratado de novo
+
+  function sameScreen(route, params) {
+    return MEO.state.route === route && JSON.stringify(MEO.state.params || {}) === JSON.stringify(params || {});
+  }
+
   MEO.navigate = function (route, params) {
+    if (sameScreen(route, params)) { closeSidebarMobile(); return; }
+    // guarda a posição de rolagem da tela que está sendo deixada, pra poder voltar a ela depois
+    try { history.replaceState(Object.assign({}, history.state, { scrollY: window.scrollY }), ''); } catch (e) { /* ignora */ }
+    // Empilha a entrada de histórico ANTES de renderizar: assim, mesmo que a
+    // tela de destino tenha algum erro ao montar (ver try/catch em render()),
+    // o histórico do navegador não fica dessincronizado da rota atual.
+    try { history.pushState({ route, params: params || {}, scrollY: 0 }, ''); navDepth++; } catch (e) { /* ignora */ }
     MEO.state.route = route;
     MEO.state.params = params || {};
     closeSidebarMobile();
+    render(true);
     window.scrollTo(0, 0);
-    render();
     updateActiveNav();
   };
 
-  MEO.rerender = function () { render(); };
+  // Para links de "Voltar" dentro do app: se há histórico interno pra desfazer,
+  // usa o botão de voltar real (consome a entrada), senão navega direto.
+  MEO.goBack = function (fallbackRoute, fallbackParams) {
+    if (navDepth > 0) { history.back(); return; }
+    MEO.navigate(fallbackRoute, fallbackParams);
+  };
 
-  function render() {
+  window.addEventListener('popstate', (e) => {
+    if (suppressPop) { suppressPop = false; return; }
+    // Se tiver um modal aberto, o botão de voltar só fecha o modal — a tela por baixo não muda.
+    if (MEO.modal && MEO.modal.isOpen && MEO.modal.isOpen()) {
+      suppressPop = true; // impede que o close() abaixo chame history.back() de novo
+      MEO.modal.close();
+      suppressPop = false; // esse popstate já foi tratado por completo, nenhum outro está pendente
+      return;
+    }
+    if (searchOpen) {
+      suppressPop = true;
+      closeSearch();
+      suppressPop = false;
+      return;
+    }
+    navDepth = Math.max(0, navDepth - 1);
+    const st = e.state || { route: 'visao-geral', params: {}, scrollY: 0 };
+    MEO.state.route = st.route || 'visao-geral';
+    MEO.state.params = st.params || {};
+    closeSidebarMobile();
+    render(true);
+    updateActiveNav();
+    const targetScroll = st.scrollY || 0;
+    requestAnimationFrame(() => window.scrollTo(0, targetScroll));
+  });
+
+  MEO.rerender = function () { render(false); };
+
+  // `navigating` só é true quando a tela realmente trocou (MEO.navigate / voltar).
+  // Outras chamadas a render() são atualizações em segundo plano (sincronização,
+  // status de login, tique do pomodoro etc.) e não devem repetir a animação de
+  // entrada — é isso que estava causando a tela "piscar" sozinha no celular.
+  function render(navigating) {
     const root = document.getElementById('view-root');
     if (!root) return;
     let html = '';
@@ -65,9 +121,15 @@ window.MEO = window.MEO || {};
       console.error('Erro ao renderizar view', e);
       html = '<div class="empty-state"><h3>Ops, algo deu errado ao mostrar esta página.</h3><p>Tente novamente ou volte para a Visão geral.</p></div>';
     }
-    root.innerHTML = `<div class="fade-in">${html}</div>`;
+    root.innerHTML = navigating ? `<div class="fade-in">${html}</div>` : html;
     MEO.refreshIcons();
-    if (MEO.views.afterRender) MEO.views.afterRender(MEO.state.route);
+    try {
+      if (MEO.views.afterRender) MEO.views.afterRender(MEO.state.route);
+    } catch (e) {
+      // Uma falha ao conectar os botões de UMA tela não deve travar a navegação
+      // do app inteiro (ex.: impedir o histórico/voltar de funcionar).
+      console.error('Erro ao conectar interações da tela', e);
+    }
   }
 
   function updateActiveNav() {
@@ -98,12 +160,22 @@ window.MEO = window.MEO || {};
       const firstInput = overlay.querySelector('input, textarea, select, button.btn-primary');
       if (firstInput) setTimeout(() => firstInput.focus(), 40);
       document.addEventListener('keydown', escHandler);
+      // Empilha uma entrada de histórico só para este modal: assim o botão/gesto
+      // de voltar do celular fecha o modal em vez de navegar a tela de baixo.
+      try { history.pushState(Object.assign({}, history.state, { modalMarker: true }), ''); } catch (e) { /* ignora */ }
       return overlay;
     },
+    isOpen() { return modalStack.length > 0; },
     close() {
       const overlay = modalStack.pop();
       if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
       if (modalStack.length === 0) document.removeEventListener('keydown', escHandler);
+      // Fechou pelo X/Cancelar/Confirmar (não pelo botão de voltar): desfaz a
+      // entrada de histórico que empilhamos ao abrir, pra não deixar "lixo" na pilha.
+      if (!suppressPop) {
+        suppressPop = true;
+        try { history.back(); } catch (e) { suppressPop = false; }
+      }
     },
     closeAll() {
       while (modalStack.length) MEO.modal.close();
@@ -305,6 +377,7 @@ window.MEO = window.MEO || {};
     });
   }
 
+  let searchOpen = false;
   function openSearch(initial) {
     const root = document.getElementById('search-root');
     root.innerHTML = `<div class="search-overlay" id="search-overlay">
@@ -318,6 +391,7 @@ window.MEO = window.MEO || {};
       </div>
     </div>`;
     MEO.refreshIcons();
+    searchOpen = true;
     const input = document.getElementById('search-modal-input');
     renderSearchResults(input.value);
     input.addEventListener('input', MEO.debounce(() => renderSearchResults(input.value), 120));
@@ -325,11 +399,22 @@ window.MEO = window.MEO || {};
     document.getElementById('search-overlay').addEventListener('mousedown', (e) => { if (e.target.id === 'search-overlay') closeSearch(); });
     setTimeout(() => input.focus(), 30);
     document.addEventListener('keydown', searchEscHandler);
+    // Entrada própria no histórico: o botão/gesto de voltar do celular fecha a busca.
+    try { history.pushState(Object.assign({}, history.state, { searchMarker: true }), ''); } catch (e) { /* ignora */ }
   }
   function searchEscHandler(e) { if (e.key === 'Escape') closeSearch(); }
   function closeSearch() {
     document.getElementById('search-root').innerHTML = '';
     document.removeEventListener('keydown', searchEscHandler);
+    searchOpen = false;
+    // Limpa o texto pesquisado ao fechar (clicar fora, X ou Esc) sem escolher um resultado
+    const sidebarInput = document.getElementById('global-search-input');
+    if (sidebarInput) sidebarInput.value = '';
+    closeSidebarMobile(); // a busca só é alcançada com a barra lateral aberta no celular/tablet
+    if (!suppressPop) {
+      suppressPop = true;
+      try { history.back(); } catch (e) { suppressPop = false; }
+    }
   }
 
   function wireSearch() {
@@ -439,9 +524,11 @@ window.MEO = window.MEO || {};
 
     MEO.pomodoro.onTick(() => { if (MEO.state.route === 'pomodoro') MEO.views.updatePomodoroDisplay && MEO.views.updatePomodoroDisplay(); });
 
-    render();
+    render(true);
     updateActiveNav();
     MEO.refreshIcons();
+    // Entrada inicial do histórico, pra servir de "base" ao empilhar as próximas telas.
+    try { history.replaceState({ route: MEO.state.route, params: MEO.state.params, scrollY: 0 }, ''); } catch (e) { /* ignora */ }
   });
 
 })(window.MEO);
