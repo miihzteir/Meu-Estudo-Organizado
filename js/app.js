@@ -41,20 +41,90 @@ window.MEO = window.MEO || {};
     return MEO.state.route === route && JSON.stringify(MEO.state.params || {}) === JSON.stringify(params || {});
   }
 
+  // ------------------------------------------------------------
+  // Endereço do navegador (links diretos/compartilháveis)
+  // ------------------------------------------------------------
+  // Cada tela (e cada sub-aba de Configurações/Matéria) tem seu próprio
+  // endereço (#/...), pra poder copiar, compartilhar e abrir direto nela,
+  // em vez de cair sempre na Visão geral.
+  const ROUTES_SEM_PARAMS = ['visao-geral', 'tarefas', 'trabalhos', 'agenda', 'pomodoro', 'planejador', 'metas', 'notas-rapidas', 'progresso', 'favoritos', 'links'];
+  const SETTINGS_TABS = ['perfil', 'graduacao', 'cores', 'pomodoro', 'revisao', 'backup', 'ajuda', 'dados'];
+  const SUBJECT_TABS = ['visao', 'tarefas', 'trabalhos', 'pdfs', 'resumos', 'flashcards', 'notas', 'faltas', 'links', 'observacoes'];
+
+  function buildPath(route, params, settingsTab, subjectTab) {
+    params = params || {};
+    if (route === 'materia' && params.id) {
+      const tab = SUBJECT_TABS.includes(subjectTab) && subjectTab !== 'visao' ? '/' + subjectTab : '';
+      return '/materia/' + encodeURIComponent(params.id) + tab;
+    }
+    if (route === 'configuracoes') {
+      const tab = SETTINGS_TABS.includes(settingsTab) && settingsTab !== 'perfil' ? '/' + settingsTab : '';
+      return '/configuracoes' + tab;
+    }
+    if (route === 'visao-geral') return '/';
+    if (ROUTES_SEM_PARAMS.includes(route)) return '/' + route;
+    return '/';
+  }
+
+  function parseHash() {
+    const raw = (location.hash || '').replace(/^#/, '');
+    const segs = raw.split('/').filter(Boolean).map((s) => { try { return decodeURIComponent(s); } catch (e) { return s; } });
+    if (!segs.length) return { route: 'visao-geral', params: {} };
+    if (segs[0] === 'materia' && segs[1]) {
+      return { route: 'materia', params: { id: segs[1] }, subjectTab: SUBJECT_TABS.includes(segs[2]) ? segs[2] : 'visao' };
+    }
+    if (segs[0] === 'configuracoes') {
+      return { route: 'configuracoes', params: {}, settingsTab: SETTINGS_TABS.includes(segs[1]) ? segs[1] : 'perfil' };
+    }
+    if (ROUTES_SEM_PARAMS.includes(segs[0])) return { route: segs[0], params: {} };
+    return { route: 'visao-geral', params: {} };
+  }
+
+  function currentHistoryState(extra) {
+    return Object.assign({
+      route: MEO.state.route,
+      params: MEO.state.params || {},
+      settingsTab: MEO.state.settingsTab || 'perfil',
+      subjectTab: MEO.state.subjectTab || 'visao',
+      scrollY: 0
+    }, extra || {});
+  }
+
+  function applyUrl(push) {
+    const path = buildPath(MEO.state.route, MEO.state.params, MEO.state.settingsTab, MEO.state.subjectTab);
+    const url = '#' + path;
+    try {
+      if (push) { history.pushState(currentHistoryState(), '', url); navDepth++; }
+      else history.replaceState(currentHistoryState({ scrollY: (history.state && history.state.scrollY) || 0 }), '', url);
+    } catch (e) { /* ignora */ }
+  }
+
   MEO.navigate = function (route, params) {
     if (sameScreen(route, params)) { closeSidebarMobile(); return; }
     // guarda a posição de rolagem da tela que está sendo deixada, pra poder voltar a ela depois
     try { history.replaceState(Object.assign({}, history.state, { scrollY: window.scrollY }), ''); } catch (e) { /* ignora */ }
+    MEO.state.route = route;
+    MEO.state.params = params || {};
     // Empilha a entrada de histórico ANTES de renderizar: assim, mesmo que a
     // tela de destino tenha algum erro ao montar (ver try/catch em render()),
     // o histórico do navegador não fica dessincronizado da rota atual.
-    try { history.pushState({ route, params: params || {}, scrollY: 0 }, ''); navDepth++; } catch (e) { /* ignora */ }
-    MEO.state.route = route;
-    MEO.state.params = params || {};
+    applyUrl(true);
     closeSidebarMobile();
     render(true);
     window.scrollTo(0, 0);
     updateActiveNav();
+  };
+
+  // Troca de sub-aba (Configurações, Matéria): também ganha seu próprio
+  // endereço e entrada de histórico, pra voltar/avançar do navegador
+  // respeitarem a sequência de abas abertas, não só as telas.
+  MEO.pushTabChange = function (key, value) {
+    if (MEO.state[key] === value) return;
+    try { history.replaceState(Object.assign({}, history.state, { scrollY: window.scrollY }), ''); } catch (e) { /* ignora */ }
+    MEO.state[key] = value;
+    applyUrl(true);
+    render(false);
+    window.scrollTo(0, 0);
   };
 
   // Para links de "Voltar" dentro do app: se há histórico interno pra desfazer,
@@ -63,6 +133,13 @@ window.MEO = window.MEO || {};
     if (navDepth > 0) { history.back(); return; }
     MEO.navigate(fallbackRoute, fallbackParams);
   };
+
+  function restoreFromState(st) {
+    MEO.state.route = st.route || 'visao-geral';
+    MEO.state.params = st.params || {};
+    MEO.state.settingsTab = st.settingsTab || 'perfil';
+    MEO.state.subjectTab = st.subjectTab || 'visao';
+  }
 
   window.addEventListener('popstate', (e) => {
     if (suppressPop) { suppressPop = false; return; }
@@ -80,14 +157,27 @@ window.MEO = window.MEO || {};
       return;
     }
     navDepth = Math.max(0, navDepth - 1);
-    const st = e.state || { route: 'visao-geral', params: {}, scrollY: 0 };
-    MEO.state.route = st.route || 'visao-geral';
-    MEO.state.params = st.params || {};
+    const st = e.state || parseHash();
+    restoreFromState(st);
     closeSidebarMobile();
     render(true);
     updateActiveNav();
     const targetScroll = st.scrollY || 0;
     requestAnimationFrame(() => window.scrollTo(0, targetScroll));
+  });
+
+  // Edição manual do endereço (colar um link direto na mesma aba já aberta):
+  // pushState/replaceState nunca disparam hashchange, então isso só reage a
+  // uma mudança de endereço feita fora do nosso próprio código.
+  window.addEventListener('hashchange', () => {
+    if (suppressPop) { suppressPop = false; return; }
+    restoreFromState(parseHash());
+    navDepth++;
+    closeSidebarMobile();
+    render(true);
+    updateActiveNav();
+    window.scrollTo(0, 0);
+    try { history.replaceState(currentHistoryState(), ''); } catch (e) { /* ignora */ }
   });
 
   MEO.rerender = function () { render(false); };
@@ -524,11 +614,15 @@ window.MEO = window.MEO || {};
 
     MEO.pomodoro.onTick(() => { if (MEO.state.route === 'pomodoro') MEO.views.updatePomodoroDisplay && MEO.views.updatePomodoroDisplay(); });
 
+    // Abre direto na tela/sub-aba do endereço copiado/compartilhado, se houver um.
+    restoreFromState(parseHash());
+
     render(true);
     updateActiveNav();
     MEO.refreshIcons();
-    // Entrada inicial do histórico, pra servir de "base" ao empilhar as próximas telas.
-    try { history.replaceState({ route: MEO.state.route, params: MEO.state.params, scrollY: 0 }, ''); } catch (e) { /* ignora */ }
+    // Entrada inicial do histórico, pra servir de "base" ao empilhar as próximas telas,
+    // já com o endereço correspondente à tela atual.
+    applyUrl(false);
   });
 
 })(window.MEO);

@@ -771,8 +771,7 @@ window.MEO = window.MEO || {};
     if (editTop) editTop.addEventListener('click', () => MEO.forms.subject(subj.semesterId, subj));
 
     root.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
-      MEO.state.subjectTab = btn.dataset.tab;
-      MEO.rerender();
+      MEO.pushTabChange('subjectTab', btn.dataset.tab);
     }));
 
     wireSubjectTab(root, subj);
@@ -2315,7 +2314,7 @@ window.MEO = window.MEO || {};
     const activeNavBtn = root.querySelector('.settings-nav button.active');
     if (activeNavBtn) activeNavBtn.scrollIntoView({ inline: 'nearest', block: 'nearest' });
 
-    root.querySelectorAll('.settings-nav button').forEach(btn => btn.addEventListener('click', () => { MEO.state.settingsTab = btn.dataset.sec; MEO.rerender(); }));
+    root.querySelectorAll('.settings-nav button').forEach(btn => btn.addEventListener('click', () => { MEO.pushTabChange('settingsTab', btn.dataset.sec); }));
 
     const signIn = root.querySelector('#btn-sign-in'); if (signIn) signIn.addEventListener('click', () => MEO.auth.signIn());
     const signInBackup = root.querySelector('#btn-sign-in-backup'); if (signInBackup) signInBackup.addEventListener('click', () => MEO.auth.signIn());
