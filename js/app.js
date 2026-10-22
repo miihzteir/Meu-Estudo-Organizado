@@ -8,6 +8,7 @@ window.MEO = window.MEO || {};
   'use strict';
 
   const todayD = new Date();
+  const APP_NAME = 'Meu Estudo Organizado';
 
   MEO.state = {
     route: 'visao-geral',
@@ -182,6 +183,33 @@ window.MEO = window.MEO || {};
 
   MEO.rerender = function () { render(false); };
 
+  // Título da aba do navegador acompanhando a tela aberta ("Tela · Meu Estudo
+  // Organizado"; na Visão geral, só o nome do app). Roda a cada render (não só
+  // ao navegar), pra acompanhar também uma edição ao vivo, como o nome de uma
+  // matéria sendo alterado enquanto a própria tela dela está aberta.
+  const SCREEN_TITLES = {
+    'visao-geral': null,
+    'tarefas': 'Tarefas',
+    'trabalhos': 'Trabalhos',
+    'agenda': 'Agenda',
+    'pomodoro': 'Pomodoro',
+    'planejador': 'Planejador',
+    'metas': 'Metas',
+    'notas-rapidas': 'Notas rápidas',
+    'progresso': 'Meu progresso',
+    'favoritos': 'Favoritos',
+    'links': 'Links',
+    'configuracoes': 'Configurações'
+  };
+  function updateDocumentTitle() {
+    let screen = SCREEN_TITLES[MEO.state.route];
+    if (MEO.state.route === 'materia') {
+      const subj = MEO.db.get('subjects', MEO.state.params.id);
+      screen = subj && subj.nome ? subj.nome.trim() : 'Matéria';
+    }
+    document.title = screen ? `${screen} · ${APP_NAME}` : APP_NAME;
+  }
+
   // `navigating` só é true quando a tela realmente trocou (MEO.navigate / voltar).
   // Outras chamadas a render() são atualizações em segundo plano (sincronização,
   // status de login, tique do pomodoro etc.) e não devem repetir a animação de
@@ -211,6 +239,7 @@ window.MEO = window.MEO || {};
       console.error('Erro ao renderizar view', e);
       html = '<div class="empty-state"><h3>Ops, algo deu errado ao mostrar esta página.</h3><p>Tente novamente ou volte para a Visão geral.</p></div>';
     }
+    updateDocumentTitle();
     root.innerHTML = navigating ? `<div class="fade-in">${html}</div>` : html;
     MEO.refreshIcons();
     try {
