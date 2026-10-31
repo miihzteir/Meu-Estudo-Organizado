@@ -94,7 +94,7 @@ window.MEO = window.MEO || {};
     const rt = new Date(remote.updatedAt || 0).getTime();
     const newer = rt > lt ? remote : local;
     const older = rt > lt ? local : remote;
-    const merged = Object.assign({}, older, newer);
+    const merged = MEO.safeAssign({}, older, newer);
     Object.keys(older).forEach(k => {
       const v = newer[k];
       if (v === '' || v === null || v === undefined) {

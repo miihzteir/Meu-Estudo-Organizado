@@ -918,10 +918,13 @@ window.MEO = window.MEO || {};
     }, 1200));
   }
 
+  const PDF_MAX_BYTES = 25 * 1024 * 1024; // 25 MB por arquivo
+
   async function handlePdfUpload(subj, files, root) {
     const area = root.querySelector('#pdf-upload-progress-area');
     for (const file of Array.from(files)) {
-      if (file.type !== 'application/pdf') { MEO.toast(`"${file.name}" não é um PDF válido.`, 'error'); continue; }
+      if (file.type !== 'application/pdf' || !/\.pdf$/i.test(file.name)) { MEO.toast(`"${file.name}" não é um PDF válido.`, 'error'); continue; }
+      if (file.size > PDF_MAX_BYTES) { MEO.toast(`"${file.name}" passa de 25 MB, o limite por arquivo.`, 'error'); continue; }
       const id = MEO.uid('pdf');
       const rowId = 'up-' + id;
       if (area) area.insertAdjacentHTML('beforeend', `<div class="item-row" id="${rowId}">
@@ -2209,9 +2212,9 @@ window.MEO = window.MEO || {};
                   return MEO.state.tiposEditDraft.map((t, idx) => {
                     const protegido = t.id === 'outro';
                     return `<div class="tipo-cor-row" data-idx="${idx}" data-tipo="${t.id}" data-icon="${t.icon || 'tag'}">
-                      <span class="tipo-cor-icon" style="background:${t.color}"><i data-lucide="${t.icon || 'tag'}" class="ic-sm"></i></span>
+                      <span class="tipo-cor-icon" style="background:${esc(t.color)}"><i data-lucide="${t.icon || 'tag'}" class="ic-sm"></i></span>
                       <input type="text" class="tipo-cor-label-input" value="${esc(t.label)}" placeholder="Nome do tipo">
-                      <input type="color" class="tipo-cor-input" value="${t.color}">
+                      <input type="color" class="tipo-cor-input" value="${esc(t.color)}">
                       <button type="button" class="btn-icon btn-danger" data-act="excluir-tipo" title="${protegido ? 'Este tipo não pode ser excluído (é o padrão de reserva)' : 'Excluir tipo'}" ${protegido ? 'disabled' : ''}><i data-lucide="trash-2" class="ic-sm"></i></button>
                     </div>`;
                   }).join('');

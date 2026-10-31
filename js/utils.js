@@ -79,6 +79,22 @@ window.MEO = window.MEO || {};
     };
   };
 
+  // Junta objetos num alvo como Object.assign, mas nunca copia as chaves
+  // __proto__/constructor/prototype — usado sempre que o conteúdo vem de fora
+  // (backup importado, dados sincronizados da nuvem) pra um arquivo adulterado
+  // não conseguir poluir o protótipo global dos objetos do app.
+  MEO.safeAssign = function (target) {
+    for (let i = 1; i < arguments.length; i++) {
+      const src = arguments[i];
+      if (!src || typeof src !== 'object') continue;
+      Object.keys(src).forEach((key) => {
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') return;
+        target[key] = src[key];
+      });
+    }
+    return target;
+  };
+
   MEO.escapeHTML = function (str) {
     if (str == null) return '';
     return String(str)

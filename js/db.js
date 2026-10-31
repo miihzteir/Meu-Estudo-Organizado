@@ -13,6 +13,8 @@ window.MEO = window.MEO || {};
     'links', 'subjectLinks', 'pdfs', 'studySessions', 'faltas', 'grades', 'tasks', 'trabalhos', 'metas', 'notas'
   ];
 
+  const safeMerge = MEO.safeAssign;
+
   function emptyState() {
     const s = { profile: { curso: '' }, settings: defaultSettings() };
     COLLECTIONS.forEach(c => { s[c] = []; });
@@ -35,7 +37,8 @@ window.MEO = window.MEO || {};
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        Object.assign(state, emptyState(), parsed);
+        Object.assign(state, emptyState());
+        safeMerge(state, parsed);
         // garante que todas coleções existam
         COLLECTIONS.forEach(c => { if (!Array.isArray(state[c])) state[c] = []; });
         if (!state.settings) state.settings = defaultSettings();
@@ -139,7 +142,7 @@ window.MEO = window.MEO || {};
 
     importAll(data) {
       Object.assign(state, emptyState());
-      Object.assign(state, data);
+      safeMerge(state, data);
       COLLECTIONS.forEach(c => { if (!Array.isArray(state[c])) state[c] = []; });
       persistLocal();
       listeners.forEach(fn => { try { fn({ type: 'import' }); } catch (e) { console.error(e); } });
